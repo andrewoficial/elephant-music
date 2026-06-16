@@ -21,4 +21,12 @@ public class AppSettings {
     @Getter @Setter
     private Boolean activeScrobbling;
 
+    @JsonProperty("updateSourceUrl")
+    @Getter @Setter
+    private String updateSourceUrl;
+
+    @JsonProperty("updateToken")
+    @Getter @Setter
+    private String updateToken;
+
 }

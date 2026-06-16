@@ -40,6 +40,7 @@
                     </ImageView>
                 </graphic>
             </Button>
+            <Button fx:id="updateButton" text=" Обновление" onAction="#showUpdateWindow" styleClass="side-button"/>
         </VBox>
     </left>
 

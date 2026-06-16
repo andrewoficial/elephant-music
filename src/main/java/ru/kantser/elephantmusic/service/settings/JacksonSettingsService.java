@@ -71,6 +71,8 @@ public class JacksonSettingsService implements SettingsService {
         defaults.setLastFmName("Anonim");
         defaults.setLastFmToken("NULL");
         defaults.setActiveScrobbling(true);
+        defaults.setUpdateSourceUrl("");
+        defaults.setUpdateToken("");
         return defaults;
     }
 }

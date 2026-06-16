@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import ru.kantser.elephantmusic.model.AppSettings;
 import ru.kantser.elephantmusic.service.FxmlLoaderHelper;
 import ru.kantser.elephantmusic.service.settings.JacksonSettingsService;
+import ru.kantser.elephantmusic.view.update.UpdateWindow;
 
 import java.io.IOException;
 
@@ -19,6 +20,9 @@ public class MainWindowController {
 
     @Inject
     JacksonSettingsService settingsService;
+
+    @Inject
+    UpdateWindow updateWindow;
 
     private VBox playerPanel;
     private VBox playlistPanel;
@@ -48,6 +52,8 @@ public class MainWindowController {
     private Button aboutButton;
     @FXML
     private Button lastFmButton;
+    @FXML
+    private Button updateButton;
     @FXML
     public void initialize() {
         if(settingsService == null){
@@ -125,11 +131,18 @@ public class MainWindowController {
 
     }
 
+    @FXML
+    private void showUpdateWindow() {
+        updateWindow.show();
+        updateWindow.toFront();
+    }
+
     private void setActiveButton(Button activeButton) {
         currentButton.getStyleClass().remove("active");
         playlistButton.getStyleClass().remove("active");
         aboutButton.getStyleClass().remove("active");
         lastFmButton.getStyleClass().remove("active");
+        updateButton.getStyleClass().remove("active");
         activeButton.getStyleClass().add("active");
     }
 

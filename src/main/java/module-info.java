@@ -21,8 +21,10 @@ module ru.kantser.elephantmusic {
     exports ru.kantser.elephantmusic.service to com.google.guice;
     exports ru.kantser.elephantmusic.service.settings to com.google.guice;
     exports ru.kantser.elephantmusic.service.lastfm to com.google.guice;
+    exports ru.kantser.elephantmusic.service.update to com.google.guice;
     exports ru.kantser.elephantmusic.model to com.fasterxml.jackson.databind;
     exports ru.kantser.elephantmusic.view.dialog to com.google.guice;
+    exports ru.kantser.elephantmusic.view.update to com.google.guice;
 
     // Пакеты для рефлексии (нужно для FXML и Guice)
     opens ru.kantser.elephantmusic.controller to javafx.fxml, com.google.guice;
@@ -30,6 +32,8 @@ module ru.kantser.elephantmusic {
     opens ru.kantser.elephantmusic.service.settings to com.google.guice;
     opens ru.kantser.elephantmusic.service.lastfm to com.google.guice;
     opens ru.kantser.elephantmusic.model to com.fasterxml.jackson.databind, com.fasterxml.jackson.datatype.jsr310; // Добавлен модуль jsr310
+    opens ru.kantser.elephantmusic.view.update to com.google.guice;
+    opens ru.kantser.elephantmusic.service.update to com.google.guice;
 
     // Если используете FXML
     //opens ru.kantser.elephantmusic.view to javafx.fxml;

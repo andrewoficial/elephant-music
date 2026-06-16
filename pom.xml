@@ -10,7 +10,7 @@
     <!-- Уникальные идентификаторы проекта: groupId - группа, artifactId - имя артефакта, version - версия. -->
     <groupId>ru.kantser.elephantmusic</groupId>
     <artifactId>elephant-music</artifactId> <!-- kebab-case - стандарт для Maven -->
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <name>ElephantMusic</name>
 
     <!-- Свойства: Переменные для упрощения конфигурации. -->
@@ -218,6 +218,12 @@
 
     <!-- Сборка: Настройка процесса сборки проекта, включая плагины Maven. Плагины упорядочены: компиляция, создание JAR, запуск/дистрибуция JavaFX. -->
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <!-- Плагин, записывающий в манифест явы текущую версию приложения -->
             <plugin>

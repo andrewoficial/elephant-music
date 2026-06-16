@@ -11,7 +11,12 @@ import ru.kantser.elephantmusic.service.settings.JacksonPlayListService;
 import ru.kantser.elephantmusic.service.settings.JacksonSettingsService;
 import ru.kantser.elephantmusic.service.settings.PlayListSaverService;
 import ru.kantser.elephantmusic.service.settings.SettingsService;
+import ru.kantser.elephantmusic.service.update.ApplicationInfoService;
+import ru.kantser.elephantmusic.service.update.ApplicationInfoServiceImpl;
+import ru.kantser.elephantmusic.service.update.UpdateService;
+import ru.kantser.elephantmusic.service.update.UpdateServiceImpl;
 import ru.kantser.elephantmusic.view.dialog.LastFmAuthDialog;
+import ru.kantser.elephantmusic.view.update.UpdateWindow;
 
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -36,6 +41,11 @@ public class AppModule extends AbstractModule {
         bind(LastFmAuthService.class).in(Singleton.class);
         bind(LastFmScrobblerService.class).in(Singleton.class);
         bind(LastFmAuthDialog.class).in(Singleton.class);
+
+        // Сервисы обновления
+        bind(UpdateService.class).to(UpdateServiceImpl.class).in(Singleton.class);
+        bind(ApplicationInfoService.class).to(ApplicationInfoServiceImpl.class).in(Singleton.class);
+        bind(UpdateWindow.class).in(Singleton.class);
     }
 
     /**
