@@ -1,11 +1,14 @@
 package ru.kantser.elephantmusic.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Track {
     // Getters and setters
     @Getter
@@ -20,6 +23,22 @@ public class Track {
     @Getter
     @Setter
     private Duration duration;
+
+    @Getter
+    @Setter
+    private Integer rating;
+
+    @Getter
+    @Setter
+    private List<String> tags;
+
+    @Getter
+    @Setter
+    private Path coverArtPath;
+
+    @Getter
+    @Setter
+    private String lyrics;
 
     // Конструктор без аргументов для Jackson
     public Track() {}

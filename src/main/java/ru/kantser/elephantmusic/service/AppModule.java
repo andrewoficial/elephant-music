@@ -8,8 +8,10 @@ import com.google.inject.Singleton;
 import ru.kantser.elephantmusic.service.lastfm.LastFmAuthService;
 import ru.kantser.elephantmusic.service.lastfm.LastFmScrobblerService;
 import ru.kantser.elephantmusic.service.settings.JacksonPlayListService;
+import ru.kantser.elephantmusic.service.settings.JacksonPlayerStateService;
 import ru.kantser.elephantmusic.service.settings.JacksonSettingsService;
 import ru.kantser.elephantmusic.service.settings.PlayListSaverService;
+import ru.kantser.elephantmusic.service.settings.PlayerStateService;
 import ru.kantser.elephantmusic.service.settings.SettingsService;
 import ru.kantser.elephantmusic.service.update.ApplicationInfoService;
 import ru.kantser.elephantmusic.service.update.ApplicationInfoServiceImpl;
@@ -36,6 +38,7 @@ public class AppModule extends AbstractModule {
         // Привязка интерфейсов к реализациям
         bind(SettingsService.class).to(JacksonSettingsService.class).in(Singleton.class);
         bind(PlayListSaverService.class).to(JacksonPlayListService.class).in(Singleton.class);
+        bind(PlayerStateService.class).to(JacksonPlayerStateService.class).in(Singleton.class);
 
         // Сервисы для работы с Last.fm
         bind(LastFmAuthService.class).in(Singleton.class);

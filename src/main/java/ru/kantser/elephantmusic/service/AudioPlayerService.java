@@ -9,16 +9,22 @@ import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.kantser.elephantmusic.model.Playlist;
+import ru.kantser.elephantmusic.model.PlayerState;
 import ru.kantser.elephantmusic.model.Track;
 import ru.kantser.elephantmusic.service.lastfm.LastFmScrobblerService;
+import ru.kantser.elephantmusic.service.settings.PlayerStateService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AudioPlayerService {
     private MediaPlayer mediaPlayer;
     private Track currentTrack;
+    private ChangeListener<Duration> progressListener;
     private AtomicBoolean isPlaying = new AtomicBoolean(false);
     private AtomicBoolean hasScrobbled = new AtomicBoolean(false); // Флаг для скробблинга (чтобы не дублировать)
     private static final Logger logger = LoggerFactory.getLogger(AudioPlayerService.class);
@@ -34,6 +40,9 @@ public class AudioPlayerService {
     @Inject
     private LastFmScrobblerService scrobbler; // Инжект скробблера
 
+    @Inject
+    private PlayerStateService playerStateService;
+
     public void setOnTrackChanged(Runnable listener) {
         this.onTrackChanged = listener;
     }
@@ -45,10 +54,7 @@ public class AudioPlayerService {
     }
 
     public void play(Track track) {
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.dispose();
-        }
+        disposePlayer();
 
         currentTrack = track;
         Media media = new Media(track.getFilePath().toUri().toString());
@@ -56,28 +62,33 @@ public class AudioPlayerService {
         isPlaying.set(true);
         hasScrobbled.set(false); // Сбрасываем флаг скробблинга для нового трека
 
+        savePlayerState(0);
+
+        progressListener = new ChangeListener<Duration>() {
+            @Override
+            public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
+                if (hasScrobbled.get()) return; // Уже скробблили — выходим
+
+                MediaPlayer player = mediaPlayer;
+                if (player == null) return;
+
+                double playedSeconds = newValue.toSeconds();
+                double totalSeconds = player.getTotalDuration().toSeconds();
+                double playedPercent = (playedSeconds / totalSeconds) * 100;
+
+                // Проверяем правило: >50% или >240 сек
+                if (playedPercent >= 50 || playedSeconds >= 240) {
+                    scrobbler.scrobble(track); // Скробблим
+                    hasScrobbled.set(true); // Устанавливаем флаг
+                    logger.info("Scrobbled track: {} by {}", track.getTitle(), track.getArtist());
+                }
+            }
+        };
+        mediaPlayer.currentTimeProperty().addListener(progressListener);
+
         mediaPlayer.setOnReady(() -> {
             mediaPlayer.play();
             scrobbler.updateNowPlaying(track); // Обновляем "сейчас играет" при старте
-
-            // Добавляем listener для мониторинга прогресса
-            mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
-                @Override
-                public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
-                    if (hasScrobbled.get()) return; // Уже скробблили — выходим
-
-                    double playedSeconds = newValue.toSeconds();
-                    double totalSeconds = mediaPlayer.getTotalDuration().toSeconds();
-                    double playedPercent = (playedSeconds / totalSeconds) * 100;
-
-                    // Проверяем правило: >50% или >240 сек
-                    if (playedPercent >= 50 || playedSeconds >= 240) {
-                        scrobbler.scrobble(track); // Скробблим
-                        hasScrobbled.set(true); // Устанавливаем флаг
-                        logger.info("Scrobbled track: {} by {}", track.getTitle(), track.getArtist());
-                    }
-                }
-            });
         });
 
         mediaPlayer.setOnEndOfMedia(() -> {
@@ -94,6 +105,7 @@ public class AudioPlayerService {
         if (mediaPlayer != null && isPlaying.get()) {
             mediaPlayer.pause();
             isPlaying.set(false);
+            savePlayerState(mediaPlayer.getCurrentTime().toSeconds());
         }
     }
 
@@ -130,6 +142,19 @@ public class AudioPlayerService {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             isPlaying.set(false);
+            savePlayerState(mediaPlayer.getCurrentTime().toSeconds());
+        }
+    }
+
+    public void stopAndDisposeIfCurrent(Track track) {
+        if (mediaPlayer == null || currentTrack == null || track == null) {
+            return;
+        }
+        if (currentTrack == track || Objects.equals(currentTrack.getFilePath(), track.getFilePath())) {
+            disposePlayer();
+            isPlaying.set(false);
+            currentTrack = null;
+            System.gc();
         }
     }
 
@@ -143,19 +168,59 @@ public class AudioPlayerService {
         return currentTrack;
     }
 
+    public boolean isCurrentTrack(Track track) {
+        if (track == null || currentTrack == null) {
+            return false;
+        }
+        return currentTrack == track || Objects.equals(currentTrack.getFilePath(), track.getFilePath());
+    }
+
     public boolean isPlaying() {
         return isPlaying.get();
     }
 
+    private void savePlayerState(double timeSeconds) {
+        if (playerStateService == null || currentTrack == null) {
+            return;
+        }
+        Playlist current = playlistService.getCurrentPlaylist();
+        if (current == null) {
+            return;
+        }
+        PlayerState state = new PlayerState(current.getName(), currentTrack.getFilePath(), timeSeconds);
+        try {
+            playerStateService.saveState(state);
+        } catch (IOException e) {
+            logger.warn("Не удалось сохранить состояние плеера: {}", e.getMessage());
+        }
+    }
+
     public void dispose() {
+        disposePlayer();
+    }
+
+    private void disposePlayer() {
         if (mediaPlayer != null) {
+            if (progressListener != null) {
+                mediaPlayer.currentTimeProperty().removeListener(progressListener);
+                progressListener = null;
+            }
+            mediaPlayer.stop();
             mediaPlayer.dispose();
+            mediaPlayer = null;
         }
     }
 
     public void seek(double v) {
-        javafx.util.Duration duration = new Duration(v);
-        mediaPlayer.seek(duration);
+        if (mediaPlayer == null) {
+            return;
+        }
+        double totalMs = mediaPlayer.getTotalDuration().toMillis();
+        if (totalMs <= 0) {
+            return;
+        }
+        double targetMs = totalMs * v / 100.0;
+        mediaPlayer.seek(new Duration(targetMs));
     }
 
     public double getCurrentPosition() {

@@ -1,5 +1,6 @@
 package ru.kantser.elephantmusic.service.settings;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -11,6 +12,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 @Singleton
 public class JacksonPlayListService implements PlayListSaverService {
@@ -26,31 +29,41 @@ public class JacksonPlayListService implements PlayListSaverService {
     }
 
     @Override
-    public Playlist loadPlayList() throws IOException {
-        if (Files.exists(playListPath)) {
-            return objectMapper.readValue(playListPath.toFile(), Playlist.class);
-        } else {
+    public List<Playlist> loadPlayLists() throws IOException {
+        if (!Files.exists(playListPath)) {
             logger.warn("Ошибка доступа к папке, возвращаю пустой плейлист.");
-            return getDefaultPlayList();
+            return new ArrayList<>();
+        }
+
+        try {
+            return objectMapper.readValue(playListPath.toFile(), new TypeReference<List<Playlist>>() {});
+        } catch (IOException listError) {
+            // Миграция со старого формата: одиночный объект Playlist
+            logger.info("Файл плейлиста в старом формате, выполняю миграцию: {}", listError.getMessage());
+            try {
+                Playlist legacy = objectMapper.readValue(playListPath.toFile(), Playlist.class);
+                List<Playlist> migrated = new ArrayList<>();
+                migrated.add(legacy);
+                return migrated;
+            } catch (IOException legacyError) {
+                logger.warn("Не удалось прочитать файл плейлиста, возвращаю пустой список: {}", legacyError.getMessage());
+                return new ArrayList<>();
+            }
         }
     }
 
-
     @Override
-    public void savePlaylist(Playlist playlist) throws IOException {
-        logger.info("Сохраняю в {}", playListPath.getParent());
-        if(playlist == null){
+    public void savePlayLists(List<Playlist> playlists) throws IOException {
+        if (playlists == null) {
             logger.warn("playlist settings IS NULL");
+            return;
         }
         Files.createDirectories(playListPath.getParent());
-
-        objectMapper.writeValue(playListPath.toFile(), playlist);
+        objectMapper.writeValue(playListPath.toFile(), playlists);
     }
 
     @Override
     public Playlist getDefaultPlayList() {
-        Playlist defaults = new Playlist("Основной плейлист");
-        defaults.clear();
-        return defaults;
+        return new Playlist("Основной плейлист");
     }
 }

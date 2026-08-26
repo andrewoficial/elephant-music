@@ -1,11 +1,23 @@
 package ru.kantser.elephantmusic.controller;
 
-
 import com.google.inject.Inject;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import org.jaudiotagger.audio.AudioFile;
@@ -15,6 +27,7 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.kantser.elephantmusic.model.Playlist;
 import ru.kantser.elephantmusic.model.Track;
 import ru.kantser.elephantmusic.service.AudioPlayerService;
 import ru.kantser.elephantmusic.service.PlaylistService;
@@ -25,13 +38,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PlayListPanelController {
     private static final Logger logger = LoggerFactory.getLogger(PlayListPanelController.class);
 
     @FXML
-    private ListView<Track> playlistView;
+    private TabPane playlistTabs;
 
     @Inject
     private PlaylistService playlistService;
@@ -42,64 +58,202 @@ public class PlayListPanelController {
     @Inject
     private WindowTitleService windowTitleService;
 
-
-
     @FXML
     public void initialize() {
-        if(this.playlistService == null){
-            logger.info("Ошибка инжектирования playlistService");
-        }
-        // Инициализация панели плейлиста
-        playlistView.setItems(playlistService.getTracks());
+        playlistService.getPlaylists().forEach(this::addPlaylistTab);
 
-        playlistView.setCellFactory(lv -> new ListCell<Track>() {
+        playlistTabs.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab != null && newTab.getUserData() instanceof Playlist playlist) {
+                playlistService.setCurrentPlaylist(playlist);
+            }
+        });
+    }
+
+    private void addPlaylistTab(Playlist playlist) {
+        ListView<Track> view = new ListView<>();
+        view.setItems(playlist.getTracks());
+        view.setCellFactory(lv -> new ListCell<Track>() {
             @Override
             protected void updateItem(Track item, boolean empty) {
                 super.updateItem(item, empty);
                 setText(empty ? null : item.toString());
             }
         });
-
-        playlistView.setOnMouseClicked(event -> {
+        view.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
-                Track selectedTrack = playlistView.getSelectionModel().getSelectedItem();
+                Track selectedTrack = view.getSelectionModel().getSelectedItem();
                 if (selectedTrack != null) {
                     playTrack(selectedTrack);
                 }
             }
         });
+        view.setContextMenu(createTrackContextMenu(view, playlist));
 
-        // В методе initialize()
-        ContextMenu contextMenu = new ContextMenu();
+        Tab tab = new Tab(playlist.getName(), view);
+        tab.setUserData(playlist);
+        tab.setContextMenu(createTabContextMenu(playlist, tab));
+
+        playlistTabs.getTabs().add(tab);
+    }
+
+    private Tab findTab(Playlist playlist) {
+        for (Tab tab : playlistTabs.getTabs()) {
+            if (tab.getUserData() == playlist) {
+                return tab;
+            }
+        }
+        return null;
+    }
+
+    private ContextMenu createTrackContextMenu(ListView<Track> view, Playlist playlist) {
+        ContextMenu menu = new ContextMenu();
+
         MenuItem playItem = new MenuItem("Воспроизвести");
         MenuItem removeItem = new MenuItem("Удалить из плейлиста");
+        MenuItem removeItemFromPc = new MenuItem("Удалить файл с компьютера");
+        MenuItem moveItem = new MenuItem("Перенести в другой плей-лист");
+        MenuItem copyItem = new MenuItem("Копировать в другой плей-лист");
 
         playItem.setOnAction(e -> {
-            Track selected = playlistView.getSelectionModel().getSelectedItem();
+            Track selected = view.getSelectionModel().getSelectedItem();
             if (selected != null) playTrack(selected);
         });
 
         removeItem.setOnAction(e -> {
-            Track selected = playlistView.getSelectionModel().getSelectedItem();
+            Track selected = view.getSelectionModel().getSelectedItem();
             if (selected != null) playlistService.removeTrack(selected);
         });
 
-        contextMenu.getItems().addAll(playItem, removeItem);
-        playlistView.setContextMenu(contextMenu);
+        removeItemFromPc.setOnAction(e -> {
+            Track selected = view.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Удаление файла");
+            confirm.setHeaderText("Удалить файл с компьютера?");
+            confirm.setContentText("Трек «" + selected + "» будет удалён не только из плейлиста, но и с вашего компьютера. Это действие нельзя отменить.");
+            confirm.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+
+            confirm.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    Path path = selected.getFilePath();
+                    logger.info("К удалению файл: {}", path.getFileName());
+                    logger.info("Размер файла: {} байт", safeFileSize(path));
+                    logger.info("Полный путь: {}", path.toAbsolutePath());
+                    logger.info("Права на чтение: {}, на запись: {}", Files.isReadable(path), Files.isWritable(path));
+                    logger.info("Занят программой: {}", playlistService.isFileLocked(path) ? "да" : "нет");
+                    logger.info("Сейчас воспроизводится: {}", audioPlayerService.isCurrentTrack(selected) ? "да" : "нет");
+
+                    boolean wasPlaying = audioPlayerService.isCurrentTrack(selected);
+                    Track replacement = wasPlaying ? playlistService.getReplacementTrack(selected) : null;
+
+                    audioPlayerService.stopAndDisposeIfCurrent(selected);
+                    playlistService.removeTrack(selected);
+
+                    logger.info("После освобождения плеером занят: {}", playlistService.isFileLocked(path) ? "да" : "нет");
+
+                    if (wasPlaying && replacement != null) {
+                        playTrack(replacement);
+                    }
+
+                    new Thread(() -> {
+                        boolean deleted = playlistService.deleteFileCompletely(selected);
+                        if (!deleted) {
+                            Platform.runLater(() -> {
+                                Alert info = new Alert(Alert.AlertType.INFORMATION);
+                                info.setTitle("Удаление файла");
+                                info.setHeaderText(null);
+                                info.setContentText("Трек удалён из плейлиста, но файл на компьютере не был найден и не удалён.");
+                                info.showAndWait();
+                            });
+                        }
+                    }).start();
+                }
+            });
+        });
+
+        moveItem.setOnAction(e -> {
+            Track selected = view.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+            Playlist target = chooseTargetPlaylist(playlist);
+            if (target != null) playlistService.moveTrack(selected, target);
+        });
+
+        copyItem.setOnAction(e -> {
+            Track selected = view.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+            Playlist target = chooseTargetPlaylist(playlist);
+            if (target != null) playlistService.copyTrack(selected, target);
+        });
+
+        menu.getItems().addAll(playItem, removeItem, removeItemFromPc, new SeparatorMenuItem(), moveItem, copyItem);
+        return menu;
+    }
+
+    private ContextMenu createTabContextMenu(Playlist playlist, Tab tab) {
+        ContextMenu menu = new ContextMenu();
+
+        MenuItem renameItem = new MenuItem("Переименовать");
+        MenuItem deleteItem = new MenuItem("Удалить лист");
+        MenuItem exportItem = new MenuItem("Экспортировать лист");
+        MenuItem copyAllItem = new MenuItem("Копировать все файлы");
+
+        renameItem.setOnAction(e -> logger.info("Переименование плейлиста пока не реализовано"));
+        deleteItem.setOnAction(e -> logger.info("Удаление плейлиста пока не реализовано"));
+        exportItem.setOnAction(e -> logger.info("Экспорт плейлиста пока не реализован"));
+        copyAllItem.setOnAction(e -> logger.info("Копирование файлов пока не реализовано"));
+
+        menu.getItems().addAll(renameItem, deleteItem, exportItem, copyAllItem);
+        return menu;
+    }
+
+    private Playlist chooseTargetPlaylist(Playlist source) {
+        Dialog<Playlist> dialog = new Dialog<>();
+        dialog.setTitle("Выбор плейлиста");
+        dialog.setHeaderText("Перенос или копирование в другой плей-лист");
+
+        ButtonType selectType = new ButtonType("Выбрать", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(selectType, ButtonType.CANCEL);
+
+        ListView<Playlist> listView = new ListView<>();
+        listView.getItems().addAll(playlistService.getPlaylists());
+        listView.getItems().remove(source);
+        listView.setPrefHeight(120);
+
+        TextField newNameField = new TextField();
+        newNameField.setPromptText("Или введите название нового плейлиста");
+
+        VBox content = new VBox(8, new Label("Существующие плейлисты:"), listView, newNameField);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(button -> {
+            if (button == selectType) {
+                String newName = newNameField.getText();
+                if (newName != null && !newName.trim().isEmpty()) {
+                    return playlistService.createPlaylist(newName.trim());
+                }
+                return listView.getSelectionModel().getSelectedItem();
+            }
+            return null;
+        });
+
+        Optional<Playlist> result = dialog.showAndWait();
+        Playlist target = result.orElse(null);
+        if (target != null && findTab(target) == null) {
+            addPlaylistTab(target);
+            playlistTabs.getSelectionModel().select(findTab(target));
+        }
+        return target;
     }
 
     private void playTrack(Track track) {
         if (audioPlayerService != null) {
             audioPlayerService.play(track);
             playlistService.setCurrentTrack(track);
-            // Обновляем заголовок окна
             if (windowTitleService != null) {
                 windowTitleService.updateTitle("Воспроизведение: " + track.getTitle());
             }
-            if(audioPlayerService != null){
-                audioPlayerService.notifyPlaybackStateChanged(true);
-            }
-            //Уведомить об начале воспроизведения
+            audioPlayerService.notifyPlaybackStateChanged(true);
         } else {
             logger.warn("AudioPlayerService не доступен для воспроизведения трека");
         }
@@ -113,100 +267,57 @@ public class PlayListPanelController {
                 new FileChooser.ExtensionFilter("Аудио файлы", "*.mp3", "*.wav", "*.aac", "*.flac", "*.m4a")
         );
 
-        File file = fileChooser.showOpenDialog(playlistView.getScene().getWindow());
+        File file = fileChooser.showOpenDialog(playlistTabs.getScene().getWindow());
         if (file != null) {
-            try {
-                AudioFile audioFile = AudioFileIO.read(file);
-                Tag tag = audioFile.getTag();
-                AudioHeader header = audioFile.getAudioHeader();
-
-                String title = file.getName();
-                String artist = "Неизвестный исполнитель";
-                Duration duration = Duration.ofSeconds(header.getTrackLength());
-
-                if (tag != null) {
-                    // Извлекаем название трека
-                    if (tag.getFirst(FieldKey.TITLE) != null && !tag.getFirst(FieldKey.TITLE).isEmpty()) {
-                        title = tag.getFirst(FieldKey.TITLE);
-                    }
-
-                    // Извлекаем исполнителя
-                    if (tag.getFirst(FieldKey.ARTIST) != null && !tag.getFirst(FieldKey.ARTIST).isEmpty()) {
-                        artist = tag.getFirst(FieldKey.ARTIST);
-                    }
-                }
-
-                Track track = new Track(
-                        title,
-                        artist,
-                        file.toPath(),
-                        duration
-                );
-                playlistService.addTrack(track);
-
-            } catch (Exception e) {
-                // Если не удалось прочитать метаданные, создаем трек с базовой информацией
-                Track track = new Track(
-                        file.getName(),
-                        "Неизвестный исполнитель",
-                        file.toPath(),
-                        Duration.ofSeconds(0)
-                );
-                playlistService.addTrack(track);
-                logger.warn("Ошибка чтения метаданных: {}", e.getMessage());
-            }
+            playlistService.addTrack(parseAudioFile(file));
         }
     }
-    
+
     @FXML
     private void clearPlaylist() {
         playlistService.clearPlaylist();
     }
 
-
-
-
-    public void addFolderForScan(ActionEvent actionEvent) {
+    @FXML
+    private void addFolderForScan(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Выберите папку с аудиофайлами");
 
-        File selectedDirectory = directoryChooser.showDialog(playlistView.getScene().getWindow());
+        File selectedDirectory = directoryChooser.showDialog(playlistTabs.getScene().getWindow());
 
         if (selectedDirectory != null) {
-            // Запускаем в отдельном потоке, чтобы не блокировать UI
-            new Thread(() -> {
-                AtomicInteger addedTracks = new AtomicInteger(0);
+            Playlist newPlaylist = playlistService.createPlaylist(selectedDirectory.getName());
+            addPlaylistTab(newPlaylist);
+            playlistTabs.getSelectionModel().select(findTab(newPlaylist));
+            playlistService.setCurrentPlaylist(newPlaylist);
 
+            new Thread(() -> {
+                List<Track> collected = new ArrayList<>();
                 try {
-                    // Рекурсивно обходим все файлы в выбранной папке
                     Files.walk(selectedDirectory.toPath())
                             .filter(this::isAudioFile)
                             .forEach(filePath -> {
-                                try {
-                                    processAudioFile(filePath.toFile());
-                                    addedTracks.incrementAndGet();
-                                } catch (Exception e) {
-                                    logger.warn("Не удалось обработать файл: " + filePath, e);
+                                Track track = parseAudioFile(filePath.toFile());
+                                if (track != null) {
+                                    collected.add(track);
                                 }
                             });
                 } catch (IOException e) {
                     logger.error("Ошибка при сканировании папки: " + selectedDirectory, e);
                 }
 
-                // Показываем уведомление о завершении в UI потоке
                 Platform.runLater(() -> {
-                    showCompletionAlert(addedTracks.get());
+                    playlistService.addTracks(newPlaylist, collected);
+                    showCompletionAlert(collected.size());
                 });
             }).start();
         }
     }
 
-    // Проверяем, является ли файл аудиофайлом
     private boolean isAudioFile(Path path) {
         if (!Files.isRegularFile(path)) {
             return false;
         }
-
         String fileName = path.getFileName().toString().toLowerCase();
         return fileName.endsWith(".mp3") ||
                 fileName.endsWith(".wav") ||
@@ -215,8 +326,15 @@ public class PlayListPanelController {
                 fileName.endsWith(".m4a");
     }
 
-    // Обрабатываем аудиофайл и добавляем его в плейлист
-    private void processAudioFile(File file) {
+    private long safeFileSize(Path path) {
+        try {
+            return Files.size(path);
+        } catch (IOException e) {
+            return -1;
+        }
+    }
+
+    private Track parseAudioFile(File file) {
         try {
             AudioFile audioFile = AudioFileIO.read(file);
             Tag tag = audioFile.getTag();
@@ -230,37 +348,18 @@ public class PlayListPanelController {
                 if (tag.getFirst(FieldKey.TITLE) != null && !tag.getFirst(FieldKey.TITLE).isEmpty()) {
                     title = tag.getFirst(FieldKey.TITLE);
                 }
-
                 if (tag.getFirst(FieldKey.ARTIST) != null && !tag.getFirst(FieldKey.ARTIST).isEmpty()) {
                     artist = tag.getFirst(FieldKey.ARTIST);
                 }
             }
 
-            Track track = new Track(title, artist, file.toPath(), duration);
-
-            // Добавляем трек в UI потоке
-            Platform.runLater(() -> {
-                playlistService.addTrack(track);
-            });
-
+            return new Track(title, artist, file.toPath(), duration);
         } catch (Exception e) {
-            // Если не удалось прочитать метаданные, создаем трек с базовой информацией
-            Track track = new Track(
-                    file.getName(),
-                    "Неизвестный исполнитель",
-                    file.toPath(),
-                    Duration.ofSeconds(0)
-            );
-
-            Platform.runLater(() -> {
-                playlistService.addTrack(track);
-            });
-
             logger.warn("Ошибка чтения метаданных: {}", e.getMessage());
+            return new Track(file.getName(), "Неизвестный исполнитель", file.toPath(), Duration.ofSeconds(0));
         }
     }
 
-    // Показываем уведомление о завершении сканирования
     private void showCompletionAlert(int tracksAdded) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Сканирование завершено");

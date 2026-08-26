@@ -19,6 +19,6 @@
     </HBox>
 
 
-    <ListView fx:id="playlistView" VBox.vgrow="ALWAYS"/>
+    <TabPane fx:id="playlistTabs" VBox.vgrow="ALWAYS"/>
 
 </VBox>
