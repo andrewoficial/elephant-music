@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import ru.kantser.elephantmusic.service.AppModule;
 import ru.kantser.elephantmusic.service.FxmlLoaderHelper;
 import ru.kantser.elephantmusic.service.WindowTitleService;
+import ru.kantser.elephantmusic.service.webui.WebUiServer;
 
 import java.net.URL;
 
@@ -54,6 +55,9 @@ public class MyApplication extends javafx.application.Application {
         primaryStage.setTitle("Музыкальный проигрыватель");
         primaryStage.setScene(new Scene(mainRoot, 800, 600));
         primaryStage.show();
+
+        // Запускаем Web-пульт (http://localhost:8080)
+        injector.getInstance(WebUiServer.class).start();
     }
 
     public static void main(String[] args) {

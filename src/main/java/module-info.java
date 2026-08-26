@@ -13,6 +13,7 @@ module ru.kantser.elephantmusic {
     requires java.desktop;
     requires jaudiotagger;
     requires com.fasterxml.jackson.datatype.jsr310; // Добавлена поддержка JSR-310 (java.time)
+    requires jdk.httpserver;
 
 
 
@@ -24,6 +25,7 @@ module ru.kantser.elephantmusic {
     exports ru.kantser.elephantmusic.service.update to com.google.guice;
     exports ru.kantser.elephantmusic.service.tag to com.google.guice;
     exports ru.kantser.elephantmusic.service.identification to com.google.guice;
+    exports ru.kantser.elephantmusic.service.webui to com.google.guice;
     exports ru.kantser.elephantmusic.model to com.fasterxml.jackson.databind;
     exports ru.kantser.elephantmusic.view.dialog to com.google.guice;
     exports ru.kantser.elephantmusic.view.update to com.google.guice;
@@ -38,6 +40,7 @@ module ru.kantser.elephantmusic {
     opens ru.kantser.elephantmusic.service.update to com.google.guice;
     opens ru.kantser.elephantmusic.service.tag to com.google.guice;
     opens ru.kantser.elephantmusic.service.identification to com.google.guice;
+    opens ru.kantser.elephantmusic.service.webui to com.google.guice;
     opens ru.kantser.elephantmusic.view.dialog to com.google.guice;
 
     // Если используете FXML

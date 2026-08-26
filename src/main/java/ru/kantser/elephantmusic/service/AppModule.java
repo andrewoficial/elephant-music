@@ -23,6 +23,7 @@ import ru.kantser.elephantmusic.service.update.ApplicationInfoService;
 import ru.kantser.elephantmusic.service.update.ApplicationInfoServiceImpl;
 import ru.kantser.elephantmusic.service.update.UpdateService;
 import ru.kantser.elephantmusic.service.update.UpdateServiceImpl;
+import ru.kantser.elephantmusic.service.webui.WebUiServer;
 import ru.kantser.elephantmusic.view.dialog.LastFmAuthDialog;
 import ru.kantser.elephantmusic.view.dialog.TagEditorDialog;
 import ru.kantser.elephantmusic.view.update.UpdateWindow;
@@ -66,6 +67,9 @@ public class AppModule extends AbstractModule {
         bind(UpdateService.class).to(UpdateServiceImpl.class).in(Singleton.class);
         bind(ApplicationInfoService.class).to(ApplicationInfoServiceImpl.class).in(Singleton.class);
         bind(UpdateWindow.class).in(Singleton.class);
+
+        // Web-пульт (KODI-style)
+        bind(WebUiServer.class).in(Singleton.class);
     }
 
     /**

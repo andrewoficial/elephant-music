@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElephantMusic — пульт</title>
+    <style>
+        :root {
+            --bg: #12121a;
+            --panel: #1e1e2a;
+            --accent: #7c5cff;
+            --text: #eaeaf2;
+            --muted: #8b8b9a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        .card {
+            width: 340px;
+            background: var(--panel);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 10px 40px rgba(0,0,0,.5);
+        }
+        h1 {
+            margin: 0 0 4px;
+            font-size: 20px;
+            letter-spacing: .5px;
+        }
+        .subtitle { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+        .now {
+            min-height: 56px;
+            margin-bottom: 24px;
+        }
+        .now .title { font-size: 16px; font-weight: 600; }
+        .now .artist { color: var(--muted); font-size: 13px; margin-top: 2px; }
+        .now .idle { color: var(--muted); }
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        button {
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            background: #2a2a3a;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            font-size: 26px;
+            transition: transform .08s ease, background .15s ease;
+        }
+        button:hover { background: #33334a; }
+        button:active { transform: scale(.94); }
+        button.primary { background: var(--accent); width: 84px; height: 84px; font-size: 30px; }
+        button.primary:hover { background: #8e72ff; }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--muted); display: inline-block; margin-right: 6px;
+        }
+        .dot.on { background: #34d399; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>ElephantMusic</h1>
+        <div class="subtitle">web-пульт (KODI-style)</div>
+
+        <div class="now" id="now">
+            <div class="idle">— ничего не играет —</div>
+        </div>
+
+        <div class="controls">
+            <button id="prev" title="Предыдущий">⏮</button>
+            <button id="play" class="primary" title="Play / Pause">▶</button>
+            <button id="next" title="Следующий">⏭</button>
+        </div>
+    </div>
+
+    <script>
+        const $now = document.getElementById('now');
+        const $play = document.getElementById('play');
+
+        function render(status) {
+            if (status.title) {
+                $now.innerHTML =
+                    '<div class="title"><span class="dot ' + (status.playing ? 'on' : '') + '"></span>' +
+                    escapeHtml(status.title) + '</div>' +
+                    '<div class="artist">' + escapeHtml(status.artist || '') + '</div>';
+            } else {
+                $now.innerHTML = '<div class="idle">— ничего не играет —</div>';
+            }
+            $play.textContent = status.playing ? '⏸' : '▶';
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        async function refresh() {
+            try {
+                const r = await fetch('/api/status');
+                render(await r.json());
+            } catch (e) {
+                $now.innerHTML = '<div class="idle">нет связи с сервером</div>';
+            }
+        }
+
+        function post(path) {
+            fetch(path, { method: 'POST' }).then(refresh);
+        }
+
+        document.getElementById('play').addEventListener('click', () => post('/api/toggle'));
+        document.getElementById('next').addEventListener('click', () => post('/api/next'));
+        document.getElementById('prev').addEventListener('click', () => post('/api/prev'));
+
+        refresh();
+        setInterval(refresh, 1500);
+    </script>
+</body>
+</html>

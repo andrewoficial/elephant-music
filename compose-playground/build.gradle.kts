@@ -23,6 +23,6 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "ru.kantser.elephantmusic.MainKt"
     }
 }
