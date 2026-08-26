@@ -41,6 +41,7 @@
                 </graphic>
             </Button>
             <Button fx:id="updateButton" text=" Обновление" onAction="#showUpdateWindow" styleClass="side-button"/>
+            <Button fx:id="settingsButton" text=" Настройки" onAction="#showSettingsPanel" styleClass="side-button"/>
         </VBox>
     </left>
 

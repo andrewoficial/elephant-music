@@ -27,6 +27,7 @@ public class MainWindowController {
     private VBox playerPanel;
     private VBox playlistPanel;
     private VBox aboutPanel;
+    private VBox settingsPanel;
     private final VBox lastFmPanel;
 
     {
@@ -54,6 +55,8 @@ public class MainWindowController {
     private Button lastFmButton;
     @FXML
     private Button updateButton;
+    @FXML
+    private Button settingsButton;
     @FXML
     public void initialize() {
         if(settingsService == null){
@@ -92,6 +95,9 @@ public class MainWindowController {
             logger.info("Сосздаю панель aboutPanel");
             aboutPanel = FxmlLoaderHelper.load("/ru/kantser/elephantmusic/view/about_panel.fxml");
 
+            logger.info("Сосздаю панель settingsPanel");
+            settingsPanel = FxmlLoaderHelper.load("/ru/kantser/elephantmusic/view/settings_panel.fxml");
+
             showPlayerPanel();
         } catch (IOException e) {
             logger.error(e.getMessage());
@@ -114,6 +120,12 @@ public class MainWindowController {
     private void showAboutPanel() {
         contentArea.getChildren().setAll(aboutPanel);
         setActiveButton(aboutButton);
+    }
+
+    @FXML
+    private void showSettingsPanel() {
+        contentArea.getChildren().setAll(settingsPanel);
+        setActiveButton(settingsButton);
     }
 
     public void showLastFmPanel() {
@@ -143,6 +155,7 @@ public class MainWindowController {
         aboutButton.getStyleClass().remove("active");
         lastFmButton.getStyleClass().remove("active");
         updateButton.getStyleClass().remove("active");
+        settingsButton.getStyleClass().remove("active");
         activeButton.getStyleClass().add("active");
     }
 

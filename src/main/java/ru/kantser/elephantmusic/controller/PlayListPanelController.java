@@ -32,6 +32,7 @@ import ru.kantser.elephantmusic.model.Track;
 import ru.kantser.elephantmusic.service.AudioPlayerService;
 import ru.kantser.elephantmusic.service.PlaylistService;
 import ru.kantser.elephantmusic.service.WindowTitleService;
+import ru.kantser.elephantmusic.view.dialog.TagEditorDialog;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,6 +58,9 @@ public class PlayListPanelController {
 
     @Inject
     private WindowTitleService windowTitleService;
+
+    @Inject
+    private TagEditorDialog tagEditorDialog;
 
     @FXML
     public void initialize() {
@@ -113,6 +117,7 @@ public class PlayListPanelController {
         MenuItem removeItemFromPc = new MenuItem("Удалить файл с компьютера");
         MenuItem moveItem = new MenuItem("Перенести в другой плей-лист");
         MenuItem copyItem = new MenuItem("Копировать в другой плей-лист");
+        MenuItem editTagsItem = new MenuItem("Редактировать теги");
 
         playItem.setOnAction(e -> {
             Track selected = view.getSelectionModel().getSelectedItem();
@@ -186,7 +191,17 @@ public class PlayListPanelController {
             if (target != null) playlistService.copyTrack(selected, target);
         });
 
-        menu.getItems().addAll(playItem, removeItem, removeItemFromPc, new SeparatorMenuItem(), moveItem, copyItem);
+        editTagsItem.setOnAction(e -> {
+            Track selected = view.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+            if (tagEditorDialog.open(selected)) {
+                view.refresh();
+            }
+        });
+
+        menu.getItems().addAll(playItem, removeItem, removeItemFromPc,
+                new SeparatorMenuItem(), moveItem, copyItem,
+                new SeparatorMenuItem(), editTagsItem);
         return menu;
     }
 

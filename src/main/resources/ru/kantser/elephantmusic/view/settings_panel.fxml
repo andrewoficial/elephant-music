@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      spacing="10"
+      style="-fx-padding: 20;"
+      fx:controller="ru.kantser.elephantmusic.controller.SettingsPanelController">
+
+    <Label text="Настройки" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button text="Открыть папку с настройками" onAction="#openSettingsFolder"/>
+    </HBox>
+    <Label fx:id="settingsFolderLabel" style="-fx-text-fill: gray;"/>
+
+    <Separator/>
+
+    <Label text="Ключи сервисов распознавания треков" style="-fx-font-weight: bold;"/>
+
+    <GridPane hgap="10" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints minWidth="180" prefWidth="180" hgrow="NEVER"/>
+            <ColumnConstraints prefWidth="320" hgrow="ALWAYS"/>
+        </columnConstraints>
+
+        <Label text="AudD API-ключ:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="auddTokenField" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                   promptText="api_token с audd.io"/>
+
+        <Label text="ACRCloud access_key:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <TextField fx:id="acrAccessKeyField" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="ACRCloud access_secret:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <TextField fx:id="acrAccessSecretField" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="ACRCloud host:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <TextField fx:id="acrHostField" GridPane.columnIndex="1" GridPane.rowIndex="3"
+                   promptText="identify-eu-west-1.acrcloud.com"/>
+    </GridPane>
+
+    <Label text="Ключи применяются после нажатия «Сохранить» и используются при определении трека." style="-fx-text-fill: gray;"/>
+
+    <HBox spacing="10">
+        <Button text="Сохранить" onAction="#saveSettings" defaultButton="true"/>
+    </HBox>
+
+</VBox>

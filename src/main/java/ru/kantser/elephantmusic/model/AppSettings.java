@@ -29,4 +29,20 @@ public class AppSettings {
     @Getter @Setter
     private String updateToken;
 
+    @JsonProperty("auddToken")
+    @Getter @Setter
+    private String auddToken;
+
+    @JsonProperty("acrAccessKey")
+    @Getter @Setter
+    private String acrAccessKey;
+
+    @JsonProperty("acrAccessSecret")
+    @Getter @Setter
+    private String acrAccessSecret;
+
+    @JsonProperty("acrHost")
+    @Getter @Setter
+    private String acrHost;
+
 }

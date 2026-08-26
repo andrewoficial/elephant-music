@@ -62,7 +62,7 @@ public class PlayerPanelController {
         // Настройка слайдера перемотки
         seekSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (seekSlider.isValueChanging() && audioPlayerService != null) {
-                logger.info("Set position {}", newValue.doubleValue());
+                //logger.info("Set position {}", newValue.doubleValue());
                 audioPlayerService.seek(newValue.doubleValue()); // Ожидает значение от 0 до 100
             }
         });
