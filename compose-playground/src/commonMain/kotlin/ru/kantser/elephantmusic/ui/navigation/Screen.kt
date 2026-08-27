@@ -7,4 +7,5 @@ enum class Screen(val title: String) {
     ABOUT("О программе"),
     UPDATE("Обновление"),
     SETTINGS("Настройки"),
+    TEST("Тестовая вкладка"),
 }
