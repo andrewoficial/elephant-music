@@ -20,10 +20,21 @@ import ru.kantser.elephantmusic.platform.createAppStorage
 import ru.kantser.elephantmusic.platform.createAudioPlayer
 import ru.kantser.elephantmusic.platform.createHttpClient
 import ru.kantser.elephantmusic.platform.createWindowMetricsProvider
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiDpiService
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiDpiServiceImpl
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiResolutionService
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiResolutionServiceImpl
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiScaleService
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiScaleServiceImpl
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiDebugState
 
 val appModule = module {
     single<AppLog> { createAppLog() }
     single<WindowMetricsProvider> { createWindowMetricsProvider() }
+    single<GuiResolutionService> { GuiResolutionServiceImpl(get()) }
+    single<GuiDpiService> { GuiDpiServiceImpl(get()) }
+    single<GuiScaleService> { GuiScaleServiceImpl() }
+    single { GuiDebugState() }
     single<AppStorage> { createAppStorage() }
     single { JsonFileStore(get()) }
     single<PlaylistRepository> { PlaylistRepositoryImpl(get()) }
