@@ -1,6 +1,8 @@
 package ru.kantser.elephantmusic.platform
 
 import android.media.MediaPlayer
+import android.net.Uri
+import ru.kantser.elephantmusic.AppContextHolder
 
 class AndroidAudioPlayer : AudioPlayer {
     private var player: MediaPlayer? = null
@@ -13,7 +15,11 @@ class AndroidAudioPlayer : AudioPlayer {
         this.onEnd = onEnd
         return try {
             val p = MediaPlayer()
-            p.setDataSource(path)
+            if (path.startsWith("content://")) {
+                p.setDataSource(AppContextHolder.context, Uri.parse(path))
+            } else {
+                p.setDataSource(path)
+            }
             p.setOnPreparedListener { mp -> this.onReady?.invoke() }
             p.setOnCompletionListener { this.onEnd?.invoke() }
             p.prepare()

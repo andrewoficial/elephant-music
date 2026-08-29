@@ -4,7 +4,7 @@ import java.awt.FileDialog
 import java.io.File
 import javax.swing.JFrame
 
-actual fun pickAudioFiles(): List<String> {
+actual suspend fun pickAudioFiles(): List<String> {
     val parent = JFrame()
     parent.isVisible = false
     val dialog = FileDialog(parent, "Выберите аудиофайлы", FileDialog.LOAD)

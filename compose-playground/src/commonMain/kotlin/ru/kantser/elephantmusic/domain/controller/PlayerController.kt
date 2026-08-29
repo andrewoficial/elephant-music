@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import ru.kantser.elephantmusic.data.service.LastFmService
+import ru.kantser.elephantmusic.domain.model.PlayerUiState
 import ru.kantser.elephantmusic.domain.model.Playlist
 import ru.kantser.elephantmusic.domain.model.PlayerState
 import ru.kantser.elephantmusic.domain.model.Track
@@ -16,25 +17,20 @@ import ru.kantser.elephantmusic.domain.repository.SettingsRepository
 import ru.kantser.elephantmusic.platform.AudioPlayer
 import kotlin.math.absoluteValue
 
-data class PlayerUiState(
-    val playlists: List<Playlist> = emptyList(),
-    val currentPlaylistName: String = "",
-    val currentTrack: Track? = null,
-    val isPlaying: Boolean = false,
-    val positionSeconds: Double = 0.0,
-    val durationSeconds: Double = 0.0,
-    val volume: Double = 0.8,
-)
-
+/**
+ * Контроллер воспроизведения: владеет общим состоянием плеера и логикой работы с аудио
+ * (play/pause/next/previous/seek/tick). Управление плейлистами/треками — в расширениях
+ * (см. PlayerPlaylistOps.kt), чтобы файл не разрастался.
+ */
 class PlayerController(
-    private val playlistRepository: PlaylistRepository,
+    internal val playlistRepository: PlaylistRepository,
     private val playerStateRepository: PlayerStateRepository,
     private val settingsRepository: SettingsRepository,
-    private val audioPlayer: AudioPlayer,
+    internal val audioPlayer: AudioPlayer,
     private val lastFmService: LastFmService,
 ) {
     var state by mutableStateOf(PlayerUiState())
-        private set
+        internal set
 
     private var currentIndex = -1
     private var loadedPath: String? = null
@@ -68,19 +64,6 @@ class PlayerController(
 
     private fun currentPlaylist(): Playlist =
         state.playlists.firstOrNull { it.name == state.currentPlaylistName } ?: state.playlists.first()
-
-    fun addTracks(paths: List<String>) {
-        if (paths.isEmpty()) return
-        val tracks = paths.map { path ->
-            val name = path.substringAfterLast('/').substringAfterLast('\\').substringBeforeLast('.')
-            Track(title = name, artist = "Unknown", filePath = path)
-        }
-        val playlists = state.playlists.map { pl ->
-            if (pl.name == state.currentPlaylistName) pl.copy(tracks = pl.tracks + tracks) else pl
-        }
-        state = state.copy(playlists = playlists)
-        playlistRepository.save(playlists)
-    }
 
     fun playPause() {
         val track = state.currentTrack ?: return
@@ -153,6 +136,17 @@ class PlayerController(
                 durationSeconds = audioPlayer.durationSeconds(),
             )
         }
+    }
+
+    internal fun savePlaylists(playlists: List<Playlist>) {
+        state = state.copy(playlists = playlists)
+        playlistRepository.save(playlists)
+    }
+
+    internal fun pathToTrack(path: String): Track {
+        val fileName = path.substringAfterLast('/').substringAfterLast('\\')
+        val name = fileName.substringBeforeLast('.')
+        return Track(title = name, artist = "Unknown", filePath = path)
     }
 
     private fun playAt(index: Int) {

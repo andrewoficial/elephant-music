@@ -1,3 +1,3 @@
 package ru.kantser.elephantmusic.platform
 
-expect fun pickAudioFiles(): List<String>
+expect suspend fun pickAudioFiles(): List<String>

@@ -29,6 +29,7 @@ import ru.kantser.elephantmusic.ui.screens.AboutScreen
 import ru.kantser.elephantmusic.ui.screens.LastFmScreen
 import ru.kantser.elephantmusic.ui.screens.PlayerScreen
 import ru.kantser.elephantmusic.ui.screens.PlaylistScreen
+import ru.kantser.elephantmusic.ui.screens.RitmixScreen
 import ru.kantser.elephantmusic.ui.screens.SettingsScreen
 import ru.kantser.elephantmusic.ui.screens.UpdateScreen
 import ru.kantser.elephantmusic.ui.screens.test.TestScreen
@@ -67,6 +68,7 @@ fun App() {
                     ) {
                         when (selected) {
                             Screen.PLAYER -> PlayerScreen(playerController)
+                            Screen.RITMIX -> RitmixScreen(playerController)
                             Screen.PLAYLIST -> PlaylistScreen(playerController)
                             Screen.LASTFM -> LastFmScreen()
                             Screen.ABOUT -> AboutScreen()

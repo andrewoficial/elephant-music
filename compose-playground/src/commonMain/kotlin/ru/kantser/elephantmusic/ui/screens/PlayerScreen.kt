@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -21,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import ru.kantser.elephantmusic.domain.controller.PlayerController
 
+/** Классический плеер: кнопки воспроизведения и навигация по треку. */
 @Composable
 fun PlayerScreen(controller: PlayerController) {
     val s = controller.state
@@ -33,7 +36,10 @@ fun PlayerScreen(controller: PlayerController) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -72,13 +78,16 @@ fun PlayerScreen(controller: PlayerController) {
 
         Spacer(Modifier.height(24.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text("🔉")
             Spacer(Modifier.width(8.dp))
             Slider(
                 value = s.volume.toFloat(),
                 onValueChange = { controller.setVolume(it.toDouble()) },
-                modifier = Modifier.width(220.dp),
+                modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(8.dp))
             Text("🔊")

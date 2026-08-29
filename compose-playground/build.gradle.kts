@@ -44,6 +44,7 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
+            implementation(compose.components.resources)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
             implementation("io.insert-koin:koin-core:4.0.0")
@@ -77,4 +78,9 @@ compose.desktop {
     application {
         mainClass = (findProperty("mainClass") as String?) ?: "ru.kantser.elephantmusic.MainKt"
     }
+}
+
+compose.resources {
+    packageOfResClass = "ru.kantser.elephantmusic.generated.resources"
+    publicResClass = true
 }
