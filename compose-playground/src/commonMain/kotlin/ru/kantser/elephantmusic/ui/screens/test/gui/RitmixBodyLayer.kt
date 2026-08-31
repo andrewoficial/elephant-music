@@ -22,6 +22,8 @@ import org.koin.compose.koinInject
 import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
 import ru.kantser.elephantmusic.ui.screens.player.RitmixLogo
+import ru.kantser.elephantmusic.ui.screens.player.ScreenMode
+import ru.kantser.elephantmusic.ui.screens.player.ScreenState
 import ru.kantser.elephantmusic.ui.screens.player.SvgGradients as G
 import ru.kantser.elephantmusic.ui.screens.player.drawBodyBlueprint
 import ru.kantser.elephantmusic.ui.screens.player.drawGraphicIcons
@@ -30,6 +32,10 @@ import ru.kantser.elephantmusic.ui.screens.player.drawPlayerBody
 import ru.kantser.elephantmusic.ui.screens.player.drawRailMetal
 import ru.kantser.elephantmusic.ui.screens.player.drawPlayerFrame
 import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
+
+/** Полная ширина контента экрана (светлая зона + синяя панель) — для полноэкранных разделов. */
+internal val FullContentWidth: Float
+    get() = PlayerGeo.Screen.LightW + PlayerGeo.Screen.PanelW
 
 /**
  * Дебаг-слой «реального корпуса плеера» внутри тестового поля: воспроизводит отрисовку
@@ -92,8 +98,9 @@ object RitmixBodyLayer {
     fun View(
         showOutlines: Boolean,
         onButton: (DeviceButton) -> Unit,
-        menuIndex: Int = 0,
+        st: ScreenState,
         scrollIndex: Int = 0,
+        playback: PlaybackUi = PlaybackUi(),
         modifier: Modifier = Modifier,
     ) {
         val log: AppLog = koinInject()
@@ -104,14 +111,20 @@ object RitmixBodyLayer {
         Box(modifier) {
             Canvas(Modifier.fillMaxSize()) {
                 drawInDeviceSpace {
-                    draw(measurer, showOutlines, menuIndex, scrollIndex)
+                    draw(measurer, showOutlines, st, scrollIndex, playback)
                 }
             }
             ButtonHitZones(lb, onButton)
         }
     }
 
-    fun DrawScope.draw(measurer: TextMeasurer, showOutlines: Boolean, menuIndex: Int = 0, scrollIndex: Int = 0) {
+    fun DrawScope.draw(
+        measurer: TextMeasurer,
+        showOutlines: Boolean,
+        st: ScreenState,
+        scrollIndex: Int = 0,
+        playback: PlaybackUi = PlaybackUi(),
+    ) {
         val lb = letterbox()
         withTransform({
             translate(lb.dx, lb.dy)
@@ -120,12 +133,21 @@ object RitmixBodyLayer {
             // Слои прибора в реальном порядке: корпус → логотип → рамка → экран → кнопки → (чертёж).
             // Благодаря DeviceLayer оркестратор не знает устройства слоёв (OCP): кнопки — это слой,
             // добавить/убрать их можно просто правкой списка, не трогая оркестратор.
+            // Контент экрана зависит от режима: HOME — меню (+ синяя панель), иначе — полноэкранный
+            // раздел без панели (SectionLayer).
+            val isHome = st.mode == ru.kantser.elephantmusic.ui.screens.player.ScreenMode.HOME
+            val contentLayer: DeviceLayer? = if (isHome) {
+                MenuListLayer(measurer, st.menuIndex, scrollIndex)
+            } else {
+                SectionLayer(measurer, st, playback)
+            }
             val layers: List<DeviceLayer?> = listOf(
                 BodyLayer,
                 LogoLayer,
                 FrameLayer,
-                ScreenLayer,
-                MenuListLayer(measurer, menuIndex, scrollIndex),
+                ScreenBackgroundLayer(isHome),
+                TopBarLayer(fullWidth = !isHome),
+                contentLayer,
                 ButtonsLayer(measurer),
                 if (showOutlines) OutlinesLayer else null,
             )
@@ -145,8 +167,9 @@ object RitmixBodyLayer {
         override fun draw(scope: DrawScope) = with(scope) { drawPlayerFrame() }
     }
 
-    private object ScreenLayer : DeviceLayer {
-        override fun draw(scope: DrawScope) = with(scope) { drawScreenBackground() }
+    /** Экран: в главном меню — светлая зона + синяя панель; в разделе — полноэкранная страница. */
+    private class ScreenBackgroundLayer(private val isHome: Boolean) : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawScreenBackground(isHome) }
     }
 
     /** Физический кнопочный брусок: металл + фаски (drawRailMetal) + шелкография (значки и лейбл "M"). */
@@ -163,22 +186,33 @@ object RitmixBodyLayer {
         override fun draw(scope: DrawScope) = with(scope) { drawBodyBlueprint(showCorners = true) }
     }
 
-    /** Экран (светлый фон + синяя панель) в локальных координатах рамки дисплея. */
-    private fun DrawScope.drawScreenBackground() {
+    /** Фон экрана в локальных координатах рамки дисплея (меню = светлая зона + синяя панель). */
+    private fun DrawScope.drawScreenBackground(isHome: Boolean) {
         val origin = PlayerGeo.DisplayFrame.topLeft
         val sc = PlayerGeo.Screen
-        drawRoundRect(
-            G.ScreenBg,
-            Offset(origin.x + sc.LightX, origin.y + sc.LightY),
-            Size(sc.LightW, sc.LightH),
-            CornerRadius(2f),
-        )
-        drawRoundRect(
-            G.PanelBlue,
-            Offset(origin.x + sc.PanelX, origin.y + sc.PanelY),
-            Size(sc.PanelW, sc.PanelH),
-            CornerRadius(2f),
-        )
+        if (isHome) {
+            // Главное меню: светлая зона слева + синяя панель справа.
+            drawRoundRect(
+                G.ScreenBg,
+                Offset(origin.x + sc.LightX, origin.y + sc.LightY),
+                Size(sc.LightW, sc.LightH),
+                CornerRadius(2f),
+            )
+            drawRoundRect(
+                G.PanelBlue,
+                Offset(origin.x + sc.PanelX, origin.y + sc.PanelY),
+                Size(sc.PanelW, sc.PanelH),
+                CornerRadius(2f),
+            )
+        } else {
+            // Открытый раздел — полноэкранная страница на всю ширину экрана, без панели.
+            drawRoundRect(
+                G.ScreenBg,
+                Offset(origin.x + sc.LightX, origin.y + sc.LightY),
+                Size(FullContentWidth, sc.LightH),
+                CornerRadius(2f),
+            )
+        }
     }
 
     /**

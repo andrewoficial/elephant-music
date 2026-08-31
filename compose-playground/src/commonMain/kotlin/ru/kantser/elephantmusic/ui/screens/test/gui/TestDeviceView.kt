@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
+import ru.kantser.elephantmusic.ui.screens.player.ScreenState
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
 /**
@@ -24,11 +25,12 @@ fun TestDeviceView(
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
     onButton: (DeviceButton) -> Unit,
-    menuIndex: Int = 0,
+    st: ScreenState,
     scrollIndex: Int = 0,
+    playback: PlaybackUi = PlaybackUi(),
 ) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        DeviceScale { scaledContent(mode, showCorners, onToggleCorners, onButton, menuIndex, scrollIndex) }
+        DeviceScale { scaledContent(mode, showCorners, onToggleCorners, onButton, st, scrollIndex, playback) }
     }
 }
 
@@ -38,8 +40,9 @@ private fun scaledContent(
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
     onButton: (DeviceButton) -> Unit,
-    menuIndex: Int = 0,
+    st: ScreenState,
     scrollIndex: Int = 0,
+    playback: PlaybackUi = PlaybackUi(),
 ) {
     Box(
         Modifier
@@ -48,7 +51,7 @@ private fun scaledContent(
         contentAlignment = Alignment.TopStart,
     ) {
         if (mode == DebugViewMode.BODY) {
-            RitmixBodyLayer.View(showCorners, onButton, menuIndex, scrollIndex, Modifier.matchParentSize())
+            RitmixBodyLayer.View(showCorners, onButton, st, scrollIndex, playback, Modifier.matchParentSize())
         } else {
             RectLayerRed.View(Modifier.matchParentSize())
             RectLayerBlue.View(Modifier.matchParentSize())

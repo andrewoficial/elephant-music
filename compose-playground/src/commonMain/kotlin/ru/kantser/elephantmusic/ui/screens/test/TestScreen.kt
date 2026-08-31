@@ -5,34 +5,159 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import org.koin.compose.koinInject
+import ru.kantser.elephantmusic.domain.controller.PlayerController
 import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
-import ru.kantser.elephantmusic.ui.screens.player.HOME_ITEMS
+import ru.kantser.elephantmusic.ui.screens.player.ScreenMode
+import ru.kantser.elephantmusic.ui.screens.player.ScreenState
+import ru.kantser.elephantmusic.ui.screens.player.homeModeFor
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugPanel
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugViewMode
 import ru.kantser.elephantmusic.ui.screens.test.gui.MenuScroll
+import ru.kantser.elephantmusic.ui.screens.test.gui.PlaybackUi
 import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
 
+/** Набор действий четырёх кнопок прибора (⏮, M, ▶, ⏭) для текущего режима. */
+private data class TestActions(
+    val rewind: () -> Unit,
+    val fwd: () -> Unit,
+    val playPause: () -> Unit,
+    val menu: () -> Unit,
+)
+
 /**
- * Тестовая вкладка «Отладка SVG»: упрощённый аналог Ritmix-плеера.
- * Поле (красный/синий/белый) или чертёж корпуса плеера вписывается в доступную область
- * автоматически (GuiScaleService); снизу — отладочная панель (координаты углов, окно,
- * область, ползунки масштаба). Клик по полю — показать/скрыть маркеры углов.
+ * Тестовая вкладка «Отладка SVG»: упрощённый аналог Ritmix-плеера, но с настоящим
+ * воспроизведением — использует тот же PlayerController (реальный источник звука), что
+ * и вкладка RITMIX. Машина состояний экрана повторяет RitmixScreen: в главном меню ▶
+ * входит в выбранный раздел (Музыка → «сейчас играет», Файлы → список, остальные — заглушки),
+ * M возвращает в меню.
  */
 @Composable
 fun TestScreen() {
     var showCorners by remember { mutableStateOf(true) }
     var mode by remember { mutableStateOf(DebugViewMode.BODY) }
-    var menuIndex by remember { mutableStateOf(0) }
     var scrollIndex by remember { mutableStateOf(0) }
     val log: AppLog = koinInject()
+    val controller: PlayerController = koinInject()
+
+    val st = remember { ScreenState() }
+    val s = controller.state
+    val playlist = s.playlists.firstOrNull { it.name == s.currentPlaylistName }
+    st.tracks = playlist?.tracks ?: emptyList()
+
+    /** Откуда пришли в «сейчас играет» — туда возвращаемся по кнопке M. */
+    var nowSource by remember { mutableStateOf(ScreenMode.LIST) }
+
+    // ===== Периодически обновляем позицию трека (для прогресс-бара) =====
+    LaunchedEffect(st.mode) {
+        if (st.mode == ScreenMode.NOW) {
+            while (isActive) {
+                controller.tick()
+                delay(500)
+            }
+        }
+    }
+
+    // ===== Главное меню: ▶ входит в выбранный пункт =====
+    fun enterHomeItem() {
+        val m = homeModeFor(st.menuIndex)
+        when {
+            m == ScreenMode.NOW -> {
+                nowSource = ScreenMode.HOME
+                st.mode = ScreenMode.NOW
+            }
+            m == ScreenMode.LIST -> {
+                st.trackSel = 0
+                st.listScroll = 0
+                st.mode = m
+            }
+            else -> st.mode = m
+        }
+    }
+
+    fun backToHome() {
+        st.mode = ScreenMode.HOME
+        st.trackSel = 0
+        st.listScroll = 0
+    }
+
+    // ===== Список: ⏮/⏭ — навигация, ▶ — воспроизведение =====
+    fun moveSel(delta: Int) {
+        if (st.tracks.isEmpty()) return
+        st.trackSel = (st.trackSel + delta).mod(st.tracks.size)
+        st.fitSelection(st.tracks.size)
+    }
+
+    fun playSelected() {
+        if (st.tracks.isEmpty()) return
+        val idx = st.trackSel.coerceIn(0, st.tracks.size - 1)
+        controller.playTrack(st.tracks[idx])
+        nowSource = ScreenMode.LIST
+        st.mode = ScreenMode.NOW
+    }
+
+    /** ▶ в списке: если ничего не играет (или выбран другой трек) — играем выбранный, иначе пауза. */
+    fun playOrToggle() {
+        val active = s.currentTrack
+        val selected = st.tracks.getOrNull(st.trackSel.coerceIn(0, st.tracks.size - 1))
+        when {
+            selected == null -> Unit
+            active == null || active.filePath != selected.filePath -> controller.playTrack(selected)
+            else -> controller.playPause()
+        }
+    }
+
+    fun moveMenu(delta: Int) {
+        st.menuIndex = (st.menuIndex + delta).mod(st.homeItems.size)
+        scrollIndex = MenuScroll.fitScroll(st.homeItems.size, scrollIndex, st.menuIndex)
+    }
+
+    // ===== «Сейчас играет»: ⏮/⏭ — предыдущий/следующий трек, ▶ — пауза, M — назад =====
+    val actions = when (st.mode) {
+        ScreenMode.HOME -> TestActions(
+            rewind = { moveMenu(-1) },
+            fwd = { moveMenu(+1) },
+            playPause = ::enterHomeItem,
+            menu = {},
+        )
+        ScreenMode.LIST -> TestActions(
+            rewind = { moveSel(-1) },
+            fwd = { moveSel(+1) },
+            playPause = ::playOrToggle,
+            menu = ::backToHome,
+        )
+        ScreenMode.NOW -> TestActions(
+            rewind = { controller.previous() },
+            fwd = { controller.next() },
+            playPause = { controller.playPause() },
+            menu = { st.mode = nowSource },
+        )
+        // Заглушки: работает только M (вернуться в меню).
+        else -> TestActions(
+            rewind = {},
+            fwd = {},
+            playPause = {},
+            menu = ::backToHome,
+        )
+    }
+
+    val playback = PlaybackUi(
+        title = s.currentTrack?.title ?: "",
+        artist = s.currentTrack?.artist ?: "",
+        isPlaying = s.isPlaying,
+        position = s.positionSeconds,
+        duration = s.durationSeconds,
+    )
 
     Column(Modifier.fillMaxSize()) {
         Box(
@@ -47,19 +172,15 @@ fun TestScreen() {
                 onToggleCorners = { showCorners = !showCorners },
                 onButton = { btn ->
                     when (btn) {
-                        DeviceButton.REWIND -> {
-                            menuIndex = (menuIndex - 1).mod(HOME_ITEMS.size)
-                            scrollIndex = MenuScroll.fitScroll(HOME_ITEMS.size, scrollIndex, menuIndex)
-                        }
-                        DeviceButton.FWD -> {
-                            menuIndex = (menuIndex + 1).mod(HOME_ITEMS.size)
-                            scrollIndex = MenuScroll.fitScroll(HOME_ITEMS.size, scrollIndex, menuIndex)
-                        }
-                        else -> log.i("DebugSVG", "btn pressed: ${btn.name}")
+                        DeviceButton.REWIND -> actions.rewind()
+                        DeviceButton.FWD -> actions.fwd()
+                        DeviceButton.PLAY_PAUSE -> actions.playPause()
+                        DeviceButton.MENU -> actions.menu()
                     }
                 },
-                menuIndex = menuIndex,
+                st = st,
                 scrollIndex = scrollIndex,
+                playback = playback,
             )
         }
         DebugPanel(

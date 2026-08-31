@@ -30,7 +30,6 @@ internal class MenuListLayer(
     private val scrollIndex: Int,
 ) : DeviceLayer {
     override fun draw(scope: DrawScope) = with(scope) {
-        drawTopBar()
         drawMenuList(measurer, menuIndex, scrollIndex)
         drawMenuPanelIcon(menuIndex)
     }
@@ -63,62 +62,6 @@ private fun DrawScope.drawMenuPanelIcon(menuIndex: Int) {
         scale(iconSize / 200f, iconSize / 200f, pivot = Offset.Zero)
     }) {
         MenuIcons.drawMenuIcon(this, menuIndex)
-    }
-}
-
-/**
- * Верхняя «шапка» окна: затемнённый фон с белыми (светло-серыми) однопиксельными
- * полосками вдоль верхней и нижней грани, высотой TopBarH, на всю ширину светлой зоны.
- * В главном меню текст шапки пустой.
- */
-private fun DrawScope.drawTopBar() {
-    val origin = PlayerGeo.DisplayFrame.topLeft
-    val sc = PlayerGeo.Screen
-
-    val tl = Offset(origin.x + sc.LightX, origin.y + sc.LightY)
-    val size = Size(sc.LightW, sc.TopBarH)
-
-    // Затемнённая подложка поверх светлого фона.
-    drawRect(Color(0xFF0b141c).copy(alpha = 0.40f), tl, size)
-
-    // Полоски (тоньше 1px) только по верхней и нижней грани.
-    val stripe = Color(0xFFe6edf2).copy(alpha = 0.60f)
-    drawRect(stripe, Offset(tl.x, tl.y), Size(sc.LightW, 0.5f))                     // верхняя грань
-    drawRect(stripe, Offset(tl.x, tl.y + sc.TopBarH - 0.5f), Size(sc.LightW, 0.5f)) // нижняя грань
-
-    drawBatteryInHeader()
-}
-
-/** Батарейка у правой границы шапки, в 3 раза меньше по высоте, белая. */
-private fun DrawScope.drawBatteryInHeader() {
-    val origin = PlayerGeo.DisplayFrame.topLeft
-    val sc = PlayerGeo.Screen
-
-    val cy = origin.y + sc.LightY + sc.TopBarH / 2f
-    val headerRight = origin.x + sc.LightX + sc.LightW
-
-    // Контент батарейки в раскладке 200×200.
-    val contentMinX = 35f
-    val contentMaxX = 184f
-    val contentMinY = 64f
-    val contentMaxY = 136f
-    val contentW = contentMaxX - contentMinX
-    val contentH = contentMaxY - contentMinY
-
-    // В 3 раза меньше исходного масштаба, у правой границы шапки.
-    val baseScale = sc.TopBarH / contentH
-    val scale = baseScale / 3f
-
-    // Отступ от правого края примерно на ширину двух букв (≈16px в масштабе шапки).
-    val rightMargin = 16f
-    val leftX = headerRight - rightMargin - contentW * scale
-    val topY = cy - contentH / 2f * scale
-
-    withTransform({
-        translate(leftX - contentMinX * scale, topY - contentMinY * scale)
-        scale(scale, scale, pivot = Offset.Zero)
-    }) {
-        MenuIcons.drawBatteryIcon(this, color = Color.White)
     }
 }
 
