@@ -4,14 +4,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
@@ -19,24 +17,21 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
-import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
 /**
  * Замеряет реально доступную область окна (в dp) и через GuiScaleService считает масштаб,
  * которым поле вписывается в эту площадь. Масштаб зависит от %available% и плотности,
- * поэтому пересчитывается при изменении любого из них. Записывает результат в GuiDebugState
- * и логирует смену масштаба.
+ * поэтому пересчитывается при изменении любого из них. Сам только считает и раскладывает;
+ * запись в GuiDebugState и логирование делегирует ScaleObserver (SRP).
  */
 @Composable
 fun DeviceScale(content: @Composable () -> Unit) {
-    val log: AppLog = koinInject()
     val scaleService: GuiScaleService = koinInject()
-    val debug: GuiDebugState = koinInject()
+    val observer: ScaleObserver = koinInject()
     val density = LocalDensity.current
 
     var availPx by remember { mutableStateOf(IntSize.Zero) }
-    var lastLogged by remember { mutableStateOf("") }
 
     // Читаем настройки как состояния — при изменении ползунков рекоменпуется пересчёт.
     val minS = scaleService.minScale
@@ -51,20 +46,8 @@ fun DeviceScale(content: @Composable () -> Unit) {
         scaleService.scaleOf(availWdp, availHdp)
     }
 
-    debug.fieldPx = Size(
-        with(density) { availPx.width.toDp().value },
-        with(density) { availPx.height.toDp().value },
-    )
-    debug.appliedScale = scale
-
-    SideEffect {
-        val line = "field dp=${with(density) { availPx.width.toDp().value.toInt() }}x" +
-            "${with(density) { availPx.height.toDp().value.toInt() }} density=${density.density} scale=$scale"
-        if (line != lastLogged) {
-            lastLogged = line
-            log.d(TAG, line)
-        }
-    }
+    // Показания в px; перевод в dp и логирование — внутри наблюдателя.
+    observer.observe(scale, availPx.width.toFloat(), availPx.height.toFloat(), density.density)
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         // Отдельный полноразмерный измеритель СВОЕЙ доступной площади (не поля):
@@ -90,4 +73,3 @@ private fun ScaledField(scale: Float, modifier: Modifier = Modifier, content: @C
     }
 }
 
-private const val TAG = "TestDevice"

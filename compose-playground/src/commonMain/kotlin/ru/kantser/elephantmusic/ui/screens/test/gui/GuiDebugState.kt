@@ -15,7 +15,7 @@ class GuiDebugState {
     /** Текущий размер окна приложения в dp (пишет desktop Main.kt). */
     var windowSize by mutableStateOf<DpSize?>(null)
 
-    /** Размер области, реально отведённой под поле (в px; пересчёт в dp — при выводе). */
+    /** Размер области, реально отведённой под поле (в dp; пишет ScaleObserver). */
     var fieldPx by mutableStateOf(Size.Zero)
 
     /** Итоговый масштаб, который фактически применён к полю (пишет DeviceScale). */
