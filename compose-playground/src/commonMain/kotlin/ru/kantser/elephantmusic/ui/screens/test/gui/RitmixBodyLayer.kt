@@ -63,14 +63,46 @@ object RitmixBodyLayer {
             scale(s, s, pivot = Offset.Zero)
         }) {
             // Слои прибора в реальном порядке: корпус → логотип → рамка → экран → значки → (чертёж).
-            drawPlayerBody()
-            RitmixLogo.draw(this)
-            drawPlayerFrame()
-            drawScreenBackground()
-            drawGraphicIcons()
-            drawMenuLabel(measurer)
-            if (showOutlines) drawBodyBlueprint(showCorners = true)
+            // Благодаря DeviceLayer оркестратор не знает устройства слоёв (OCP): кнопки = новый слой.
+            val layers: List<DeviceLayer?> = listOf(
+                BodyLayer,
+                LogoLayer,
+                FrameLayer,
+                ScreenLayer,
+                GraphicIconsLayer,
+                MenuLabelLayer(measurer),
+                if (showOutlines) OutlinesLayer else null,
+            )
+            layers.forEach { layer -> layer?.draw(this) }
         }
+    }
+
+    private object BodyLayer : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawPlayerBody() }
+    }
+
+    private object LogoLayer : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { RitmixLogo.draw(this) }
+    }
+
+    private object FrameLayer : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawPlayerFrame() }
+    }
+
+    private object ScreenLayer : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawScreenBackground() }
+    }
+
+    private object GraphicIconsLayer : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawGraphicIcons() }
+    }
+
+    private class MenuLabelLayer(private val measurer: TextMeasurer) : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawMenuLabel(measurer) }
+    }
+
+    private object OutlinesLayer : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) { drawBodyBlueprint(showCorners = true) }
     }
 
     /** Экран (светлый фон + синяя панель) в локальных координатах рамки дисплея. */

@@ -27,6 +27,8 @@ import ru.kantser.elephantmusic.ui.screens.test.gui.GuiResolutionServiceImpl
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiScaleService
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiScaleServiceImpl
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiDebugState
+import ru.kantser.elephantmusic.ui.screens.test.gui.ScaleObserver
+import ru.kantser.elephantmusic.ui.screens.test.gui.ScaleObserverImpl
 
 val appModule = module {
     single<AppLog> { createAppLog() }
@@ -35,6 +37,7 @@ val appModule = module {
     single<GuiDpiService> { GuiDpiServiceImpl(get()) }
     single<GuiScaleService> { GuiScaleServiceImpl() }
     single { GuiDebugState() }
+    single<ScaleObserver> { ScaleObserverImpl(get(), get()) }
     single<AppStorage> { createAppStorage() }
     single { JsonFileStore(get()) }
     single<PlaylistRepository> { PlaylistRepositoryImpl(get()) }
