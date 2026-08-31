@@ -12,17 +12,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugPanel
+import ru.kantser.elephantmusic.ui.screens.test.gui.DebugViewMode
 import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
 
 /**
  * Тестовая вкладка «Отладка SVG»: упрощённый аналог Ritmix-плеера.
- * Поле (красный/синий/белый) вписывается в доступную область автоматически (GuiScaleService);
- * снизу — отладочная панель (координаты углов, окно, область, ползунки масштаба).
- * Клик по полю — показать/скрыть маркеры углов.
+ * Поле (красный/синий/белый) или чертёж корпуса плеера вписывается в доступную область
+ * автоматически (GuiScaleService); снизу — отладочная панель (координаты углов, окно,
+ * область, ползунки масштаба). Клик по полю — показать/скрыть маркеры углов.
  */
 @Composable
 fun TestScreen() {
     var showCorners by remember { mutableStateOf(true) }
+    var mode by remember { mutableStateOf(DebugViewMode.BODY) }
 
     Column(Modifier.fillMaxSize()) {
         Box(
@@ -32,11 +34,14 @@ fun TestScreen() {
             contentAlignment = Alignment.Center,
         ) {
             TestDeviceView(
+                mode = mode,
                 showCorners = showCorners,
                 onToggleCorners = { showCorners = !showCorners },
             )
         }
         DebugPanel(
+            mode = mode,
+            onModeChange = { mode = it },
             showCorners = showCorners,
             onToggleCorners = { showCorners = !showCorners },
         )

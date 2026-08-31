@@ -13,12 +13,13 @@ import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as Geo
 object PlayerFrame {
     @Composable
     fun View(modifier: Modifier = androidx.compose.ui.Modifier) {
-        Canvas(modifier) { drawInDeviceSpace { draw() } }
+        Canvas(modifier) { drawInDeviceSpace { drawPlayerFrame() } }
     }
+}
 
-    fun androidx.compose.ui.graphics.drawscope.DrawScope.draw() {
-        val f = Geo.DisplayFrame
-        drawRoundRect(G.FrameFill, f.topLeft, f.size, f.radius)
-        drawRoundRect(color = G.FrameStroke, topLeft = f.topLeft, size = f.size, cornerRadius = f.radius)
-    }
+/** Отрисовка рамки дисплея (бизел) в координатах устройства 520x350. */
+fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPlayerFrame() {
+    val f = Geo.DisplayFrame
+    drawRoundRect(G.FrameFill, f.topLeft, f.size, f.radius)
+    drawRoundRect(color = G.FrameStroke, topLeft = f.topLeft, size = f.size, cornerRadius = f.radius)
 }

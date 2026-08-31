@@ -20,4 +20,7 @@ class GuiDebugState {
 
     /** Итоговый масштаб, который фактически применён к полю (пишет DeviceScale). */
     var appliedScale by mutableStateOf(1f)
+
+    /** Показывать чертёж корпуса (прямоугольники) на реальном экране плеера. */
+    var showPlayerBody by mutableStateOf(false)
 }

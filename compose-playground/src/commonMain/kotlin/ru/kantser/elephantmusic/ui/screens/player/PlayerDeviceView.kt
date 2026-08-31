@@ -1,6 +1,7 @@
 package ru.kantser.elephantmusic.ui.screens.player
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -22,6 +23,7 @@ import org.koin.compose.koinInject
 import ru.kantser.elephantmusic.domain.model.Track
 import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.platform.WindowMetricsProvider
+import ru.kantser.elephantmusic.ui.screens.test.gui.GuiDebugState
 import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as Geo
 
 /**
@@ -44,6 +46,7 @@ fun PlayerDeviceView(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
+    val debug: GuiDebugState = koinInject()
     val size = Geo.W.dp
     DeviceScale {
         Box(Modifier.size(size, Geo.H.dp)) {
@@ -69,6 +72,9 @@ fun PlayerDeviceView(
                 onPlayPause = onPlayPause,
                 onFwd = onFwd,
             )
+            if (debug.showPlayerBody) {
+                Canvas(Modifier.fillMaxSize()) { drawInDeviceSpace { drawBodyBlueprint() } }
+            }
         }
     }
 }

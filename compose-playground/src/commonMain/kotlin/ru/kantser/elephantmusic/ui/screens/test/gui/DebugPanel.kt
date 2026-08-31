@@ -17,17 +17,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
-/** Имена углов в порядке RectGeom.corners: [левый-верх, правый-верх, правый-низ, левый-низ]. */
+/** Имена углов в порядке corners: [левый-верх, правый-верх, правый-низ, левый-низ]. */
 private val CornerNames = listOf("ЛВ", "ПВ", "ПН", "ЛН")
 
 /**
  * Отладочная панель: координаты углов фигур (копируемо), легенда координат, показания
- * окна/области поля и ползунки настройки масштаба (мин/макс/ручной множитель).
+ * окна/области поля, переключатель вида (поле/корпус плеера), оверлей на плеере
+ * и ползунки настройки масштаба (мин/макс/ручной множитель).
  */
 @Composable
 fun DebugPanel(
+    mode: DebugViewMode,
+    onModeChange: (DebugViewMode) -> Unit,
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
 ) {
@@ -41,66 +45,81 @@ fun DebugPanel(
         "[" + g.corners.mapIndexed { i, c -> "${CornerNames[i]}(${c.x.toInt()},${c.y.toInt()})" }
             .joinToString(" ") + "]"
 
+    fun fmtP(g: ru.kantser.elephantmusic.ui.screens.player.RectGeom): String =
+        "[" + listOf(
+            "ЛВ(${g.x.toInt()},${g.y.toInt()})",
+            "ПВ(${(g.x + g.w).toInt()},${g.y.toInt()})",
+            "ПН(${(g.x + g.w).toInt()},${(g.y + g.h).toInt()})",
+            "ЛН(${g.x.toInt()},${(g.y + g.h).toInt()})",
+        ).joinToString(" ") + "]"
+
     val winLine = debug.windowSize?.let { "окно ${it.width.value.toInt()}x${it.height.value.toInt()} dp" } ?: "окно: нет данных"
     val fieldLine = "область поля ${debug.fieldPx.width.toInt()}x${debug.fieldPx.height.toInt()} dp"
+    val densityLine = "compose density = ${dpi.densityFactor(density)}"
+    val infoLine = "$winLine    $fieldLine    $densityLine"
     val redPxW = (Geo.W * debug.appliedScale * density.density).toInt()
     val redPxH = (Geo.H * debug.appliedScale * density.density).toInt()
     val redLine = "Красный (300x300 логич.) = $redPxW x $redPxH px при масштабе ${debug.appliedScale}"
 
     Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Text("Координаты: (0,0) — левый верхний угол поля; x растёт вправо, y — вниз. " +
-            "Углы: ЛВ/ПВ/ПН/ЛН.", style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("вид: ", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "поле",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clickable { onModeChange(DebugViewMode.FIELD) },
+                color = if (mode == DebugViewMode.FIELD) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(" / ", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "корпус",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clickable { onModeChange(DebugViewMode.BODY) },
+                color = if (mode == DebugViewMode.BODY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                "углы: ${if (showCorners) "вкл" else "выкл"} (клик по полю)",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clickable { onToggleCorners() },
+            )
+        }
         Text(
-            "Показывать углы: ${if (showCorners) "вкл" else "выкл"} (клик по полю)",
+            "Оверлей корпуса на плеере: ${if (debug.showPlayerBody) "вкл" else "выкл"}",
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 2.dp).clickable { onToggleCorners() },
+            modifier = Modifier.padding(top = 2.dp).clickable { debug.showPlayerBody = !debug.showPlayerBody },
         )
         Spacer(Modifier.height(4.dp))
 
         SelectionContainer {
             Column {
                 Text("Отладка SVG", style = MaterialTheme.typography.titleMedium)
-                Text(winLine, style = MaterialTheme.typography.bodySmall)
-                Text(fieldLine, style = MaterialTheme.typography.bodySmall)
-                Text(redLine, style = MaterialTheme.typography.bodySmall)
+                Text(infoLine, style = MaterialTheme.typography.bodySmall)
+                if (mode == DebugViewMode.FIELD) {
+                    Text(redLine, style = MaterialTheme.typography.bodySmall)
+                }
                 Text(resolution.activeDisplay()?.let {
                     "экран ${it.widthPx}x${it.heightPx}px dpi=${it.densityDpi.toInt()} ос-масштаб=${it.scaleFactor}"
                 } ?: "экран: нет данных", style = MaterialTheme.typography.bodySmall)
-                Text("Compose density = ${dpi.densityFactor(density)}", style = MaterialTheme.typography.bodySmall)
-                Text("Красный ${fmt(Geo.Red)}", style = MaterialTheme.typography.bodySmall)
-                Text("Синий  ${fmt(Geo.Blue)}", style = MaterialTheme.typography.bodySmall)
-                Text("Белый  ${fmt(Geo.White)}", style = MaterialTheme.typography.bodySmall)
+                if (mode == DebugViewMode.FIELD) {
+                    Text("Красный ${fmt(Geo.Red)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Синий  ${fmt(Geo.Blue)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Белый  ${fmt(Geo.White)}", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("Shell  ${fmtP(PlayerGeo.BodyShell)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Edge   ${fmtP(PlayerGeo.BodyEdge)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Face   ${fmtP(PlayerGeo.BodyFace)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Frame  ${fmtP(PlayerGeo.DisplayFrame)}", style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
         Spacer(Modifier.height(6.dp))
-
         ScaleSliders(scale)
     }
 }
 
 @Composable
 private fun ScaleSliders(scale: GuiScaleService) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("мин", style = MaterialTheme.typography.labelSmall)
-        Slider(
-            value = scale.minScale,
-            onValueChange = { scale.minScale = it },
-            valueRange = 0.05f..1f,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-        )
-        Text("${scale.minScale}", style = MaterialTheme.typography.labelSmall)
-    }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("макс", style = MaterialTheme.typography.labelSmall)
-        Slider(
-            value = scale.maxScale,
-            onValueChange = { scale.maxScale = it },
-            valueRange = 1f..10f,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-        )
-        Text("${scale.maxScale}", style = MaterialTheme.typography.labelSmall)
-    }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text("множ", style = MaterialTheme.typography.labelSmall)
         Slider(

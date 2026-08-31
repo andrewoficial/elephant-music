@@ -27,33 +27,47 @@ import org.koin.compose.koinInject
 import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
+/** Какой вид показывает тестовое поле: поле (SVG-отладка) или чертёж корпуса плеера. */
+enum class DebugViewMode { FIELD, BODY }
+
 /**
  * Композиционный корень тестового поля (аналог PlayerDeviceView у Ritmix):
  * логический холст GuiGeometry.W x GuiGeometry.H, масштабируется под доступную площадь
- * через GuiScaleService. Слои снизу вверх: красный → синий → белый → маркеры углов.
+ * через GuiScaleService.
+ *  - FIELD: красный → синий → белый → маркеры углов;
+ *  - BODY:  реальный корпус плеера с экраном (RitmixBodyLayer).
  */
 @Composable
 fun TestDeviceView(
+    mode: DebugViewMode,
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
 ) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        DeviceScale { scaledContent(showCorners, onToggleCorners) }
+        DeviceScale { scaledContent(mode, showCorners, onToggleCorners) }
     }
 }
 
 @Composable
-private fun scaledContent(showCorners: Boolean, onToggleCorners: () -> Unit) {
+private fun scaledContent(
+    mode: DebugViewMode,
+    showCorners: Boolean,
+    onToggleCorners: () -> Unit,
+) {
     Box(
         Modifier
             .size(Geo.W.dp, Geo.H.dp)
             .clickable { onToggleCorners() },
         contentAlignment = Alignment.TopStart,
     ) {
-        RectLayerRed.View(Modifier.matchParentSize())
-        RectLayerBlue.View(Modifier.matchParentSize())
-        RectLayerWhite.View(Modifier.matchParentSize())
-        DebugCornersLayer.View(showCorners, Modifier.matchParentSize())
+        if (mode == DebugViewMode.BODY) {
+            RitmixBodyLayer.View(showCorners, Modifier.matchParentSize())
+        } else {
+            RectLayerRed.View(Modifier.matchParentSize())
+            RectLayerBlue.View(Modifier.matchParentSize())
+            RectLayerWhite.View(Modifier.matchParentSize())
+            DebugCornersLayer.View(showCorners, Modifier.matchParentSize())
+        }
     }
 }
 
