@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
+import ru.kantser.elephantmusic.ui.screens.player.RitmixLogo
 import ru.kantser.elephantmusic.ui.screens.player.SvgGradients as G
 import ru.kantser.elephantmusic.ui.screens.player.drawBodyBlueprint
 import ru.kantser.elephantmusic.ui.screens.player.drawPlayerBody
@@ -34,8 +35,9 @@ object RitmixBodyLayer {
             translate(dx, dy)
             scale(s, s, pivot = Offset.Zero)
         }) {
-            // Слои прибора в реальном порядке: корпус → рамка → экран → (чертёж).
+            // Слои прибора в реальном порядке: корпус → логотип → рамка → экран → (чертёж).
             drawPlayerBody()
+            RitmixLogo.draw(this)
             drawPlayerFrame()
             drawScreenBackground()
             if (showOutlines) drawBodyBlueprint(showCorners = true)
