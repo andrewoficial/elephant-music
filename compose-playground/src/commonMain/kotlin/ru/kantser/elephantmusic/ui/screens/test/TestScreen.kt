@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.koin.compose.koinInject
 import ru.kantser.elephantmusic.platform.AppLog
+import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
+import ru.kantser.elephantmusic.ui.screens.player.HOME_ITEMS
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugPanel
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugViewMode
 import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
@@ -41,7 +43,13 @@ fun TestScreen() {
                 mode = mode,
                 showCorners = showCorners,
                 onToggleCorners = { showCorners = !showCorners },
-                onButton = { btn -> log.i("DebugSVG", "btn pressed: ${btn.name}") },
+                onButton = { btn ->
+                    when (btn) {
+                        DeviceButton.REWIND -> menuIndex = (menuIndex - 1).mod(HOME_ITEMS.size)
+                        DeviceButton.FWD -> menuIndex = (menuIndex + 1).mod(HOME_ITEMS.size)
+                        else -> log.i("DebugSVG", "btn pressed: ${btn.name}")
+                    }
+                },
                 menuIndex = menuIndex,
             )
         }
