@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
@@ -106,6 +107,7 @@ object RitmixBodyLayer {
     private class ButtonsLayer(private val measurer: TextMeasurer) : DeviceLayer {
         override fun draw(scope: DrawScope) = with(scope) {
             drawRailMetal()
+            drawButtonEdgeHighlight()
             drawGraphicIcons()
             drawMenuLabel(measurer)
         }
@@ -131,5 +133,40 @@ object RitmixBodyLayer {
             Size(sc.PanelW, sc.PanelH),
             CornerRadius(2f),
         )
+    }
+
+    /**
+     * Локальная компенсация (вариант B): при letterbox-масштабе тонкая светлая фаска кнопок
+     * (FaceSide/FaceVert) сжимается до ~1px и «усредняется», отчего грань выглядит блеклой.
+     * Здесь рисуем поверх лица каждой кнопки явную яркую кромку (слева + сверху), которая
+     * остаётся видимой и после масштаба. Затрагивает только тестовую вкладку.
+     */
+    private fun DrawScope.drawButtonEdgeHighlight() {
+        val b = PlayerGeo.Buttons
+        val highlight = Color(0xFFd8dde1)
+        for (i in 0 until 4) {
+            val y = b.bodyY(i) + 1f
+            val left = b.FaceX
+            val top = y
+            val right = b.FaceX + b.FaceW
+            val bottom = y + b.FaceH
+            // Светлая левая грань
+            drawLine(highlight, Offset(left, top), Offset(left, bottom), strokeWidth = 1.6f)
+            // Светлая верхняя грань
+            drawLine(highlight, Offset(left, top), Offset(right, top), strokeWidth = 1.6f)
+            // Тонкая правая/нижняя тень для контраста грани
+            drawLine(
+                Color.Black.copy(alpha = 0.35f),
+                Offset(right, top),
+                Offset(right, bottom),
+                strokeWidth = 1f,
+            )
+            drawLine(
+                Color.Black.copy(alpha = 0.25f),
+                Offset(left, bottom),
+                Offset(right, bottom),
+                strokeWidth = 1f,
+            )
+        }
     }
 }
