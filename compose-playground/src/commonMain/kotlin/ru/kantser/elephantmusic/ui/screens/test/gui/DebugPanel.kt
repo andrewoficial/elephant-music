@@ -90,24 +90,24 @@ fun DebugPanel(
 
         SelectionContainer {
             Column {
-                Text("Отладка SVG", style = MaterialTheme.typography.titleMedium)
-                Text(infoLine, style = MaterialTheme.typography.bodySmall)
-                if (mode == DebugViewMode.FIELD) {
-                    Text(redLine, style = MaterialTheme.typography.bodySmall)
-                }
-                Text(resolution.activeDisplay()?.let {
-                    "экран ${it.widthPx}x${it.heightPx}px dpi=${it.densityDpi.toInt()} ос-масштаб=${it.scaleFactor}"
-                } ?: "экран: нет данных", style = MaterialTheme.typography.bodySmall)
-                if (mode == DebugViewMode.FIELD) {
-                    Text("Красный ${formatCorners(Geo.Red)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Синий  ${formatCorners(Geo.Blue)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Белый  ${formatCorners(Geo.White)}", style = MaterialTheme.typography.bodySmall)
-                } else {
-                    Text("Shell  ${formatCornersP(PlayerGeo.BodyShell)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Edge   ${formatCornersP(PlayerGeo.BodyEdge)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Face   ${formatCornersP(PlayerGeo.BodyFace)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Frame  ${formatCornersP(PlayerGeo.DisplayFrame)}", style = MaterialTheme.typography.bodySmall)
-                }
+                //Text("Отладка SVG", style = MaterialTheme.typography.titleMedium)
+                //Text(infoLine, style = MaterialTheme.typography.bodySmall)
+//                if (mode == DebugViewMode.FIELD) {
+//                    Text(redLine, style = MaterialTheme.typography.bodySmall)
+//                }
+//                Text(resolution.activeDisplay()?.let {
+//                    "экран ${it.widthPx}x${it.heightPx}px dpi=${it.densityDpi.toInt()} ос-масштаб=${it.scaleFactor}"
+//                } ?: "экран: нет данных", style = MaterialTheme.typography.bodySmall)
+//                if (mode == DebugViewMode.FIELD) {
+//                    Text("Красный ${formatCorners(Geo.Red)}", style = MaterialTheme.typography.bodySmall)
+//                    Text("Синий  ${formatCorners(Geo.Blue)}", style = MaterialTheme.typography.bodySmall)
+//                    Text("Белый  ${formatCorners(Geo.White)}", style = MaterialTheme.typography.bodySmall)
+//                } else {
+//                    Text("Shell  ${formatCornersP(PlayerGeo.BodyShell)}", style = MaterialTheme.typography.bodySmall)
+//                    Text("Edge   ${formatCornersP(PlayerGeo.BodyEdge)}", style = MaterialTheme.typography.bodySmall)
+//                    Text("Face   ${formatCornersP(PlayerGeo.BodyFace)}", style = MaterialTheme.typography.bodySmall)
+//                    Text("Frame  ${formatCornersP(PlayerGeo.DisplayFrame)}", style = MaterialTheme.typography.bodySmall)
+//                }
             }
         }
         Spacer(Modifier.height(6.dp))

@@ -101,6 +101,7 @@ object RitmixBodyLayer {
         st: ScreenState,
         scrollIndex: Int = 0,
         playback: PlaybackUi = PlaybackUi(),
+        debug: DebugUi = DebugUi(),
         modifier: Modifier = Modifier,
     ) {
         val log: AppLog = koinInject()
@@ -111,7 +112,7 @@ object RitmixBodyLayer {
         Box(modifier) {
             Canvas(Modifier.fillMaxSize()) {
                 drawInDeviceSpace {
-                    draw(measurer, showOutlines, st, scrollIndex, playback)
+                    draw(measurer, showOutlines, st, scrollIndex, playback, debug)
                 }
             }
             ButtonHitZones(lb, onButton)
@@ -124,6 +125,7 @@ object RitmixBodyLayer {
         st: ScreenState,
         scrollIndex: Int = 0,
         playback: PlaybackUi = PlaybackUi(),
+        debug: DebugUi = DebugUi(),
     ) {
         val lb = letterbox()
         withTransform({
@@ -139,7 +141,7 @@ object RitmixBodyLayer {
             val contentLayer: DeviceLayer? = if (isHome) {
                 MenuListLayer(measurer, st.menuIndex, scrollIndex)
             } else {
-                SectionLayer(measurer, st, playback)
+                SectionLayer(measurer, st, playback, debug)
             }
             val layers: List<DeviceLayer?> = listOf(
                 BodyLayer,

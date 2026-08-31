@@ -11,3 +11,7 @@ expect fun deleteFileCompletely(path: String): Boolean
 expect fun scanAudioFilesInFolder(folder: String): List<String>
 
 expect fun settingsFolderPath(): String
+
+expect fun platformRuntimeLabel(): String
+
+expect fun javaVersionLabel(): String

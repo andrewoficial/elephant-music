@@ -1,6 +1,5 @@
 package ru.kantser.elephantmusic.ui.screens.test.gui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -18,19 +17,20 @@ import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
  * через GuiScaleService (DeviceScale).
  *  - FIELD: красный → синий → белый → маркеры углов;
  *  - BODY:  реальный корпус плеера с экраном (RitmixBodyLayer) + клики по кнопкам.
+ * Клик по полю ничего не переключает (показ углов/разметки управляется тогглом в DebugPanel).
  */
 @Composable
 fun TestDeviceView(
     mode: DebugViewMode,
     showCorners: Boolean,
-    onToggleCorners: () -> Unit,
     onButton: (DeviceButton) -> Unit,
     st: ScreenState,
     scrollIndex: Int = 0,
     playback: PlaybackUi = PlaybackUi(),
+    debug: DebugUi = DebugUi(),
 ) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        DeviceScale { scaledContent(mode, showCorners, onToggleCorners, onButton, st, scrollIndex, playback) }
+        DeviceScale { scaledContent(mode, showCorners, onButton, st, scrollIndex, playback, debug) }
     }
 }
 
@@ -38,20 +38,18 @@ fun TestDeviceView(
 private fun scaledContent(
     mode: DebugViewMode,
     showCorners: Boolean,
-    onToggleCorners: () -> Unit,
     onButton: (DeviceButton) -> Unit,
     st: ScreenState,
     scrollIndex: Int = 0,
     playback: PlaybackUi = PlaybackUi(),
+    debug: DebugUi = DebugUi(),
 ) {
     Box(
-        Modifier
-            .size(Geo.W.dp, Geo.H.dp)
-            .clickable { onToggleCorners() },
+        Modifier.size(Geo.W.dp, Geo.H.dp),
         contentAlignment = Alignment.TopStart,
     ) {
         if (mode == DebugViewMode.BODY) {
-            RitmixBodyLayer.View(showCorners, onButton, st, scrollIndex, playback, Modifier.matchParentSize())
+            RitmixBodyLayer.View(showCorners, onButton, st, scrollIndex, playback, debug, Modifier.matchParentSize())
         } else {
             RectLayerRed.View(Modifier.matchParentSize())
             RectLayerBlue.View(Modifier.matchParentSize())

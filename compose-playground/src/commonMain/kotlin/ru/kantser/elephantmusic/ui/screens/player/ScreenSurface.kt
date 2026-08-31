@@ -81,6 +81,7 @@ fun ScreenSurface(
             ScreenMode.NOW -> NowPlayingView(nowPlaying, isPlaying, nowPosition, nowDuration, onPlayPause, onPrev, onNext)
             ScreenMode.VIDEO, ScreenMode.PHOTO, ScreenMode.TEXT,
             ScreenMode.RECORD, ScreenMode.OTHER, ScreenMode.SETTINGS,
+            ScreenMode.EMULATOR,
             -> PlaceholderView(state.mode)
         }
     }

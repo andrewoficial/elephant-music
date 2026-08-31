@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import ru.kantser.elephantmusic.domain.model.Track
 
-enum class ScreenMode { HOME, LIST, NOW, VIDEO, PHOTO, TEXT, RECORD, OTHER, SETTINGS }
+enum class ScreenMode { HOME, LIST, NOW, VIDEO, PHOTO, TEXT, RECORD, OTHER, SETTINGS, EMULATOR }
 
 /** Сколько строк списка видно на экране (высота светлой зоны 168 / высота строки 20). */
 const val VISIBLE_LIST_ROWS = 8

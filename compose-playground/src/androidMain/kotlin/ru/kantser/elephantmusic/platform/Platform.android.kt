@@ -23,3 +23,8 @@ actual fun scanAudioFilesInFolder(folder: String): List<String> = emptyList()
 actual fun settingsFolderPath(): String =
     AppContextHolder.context.getExternalFilesDir(null)?.absolutePath
         ?: AppContextHolder.context.filesDir.absolutePath
+
+actual fun platformRuntimeLabel(): String = "android"
+
+actual fun javaVersionLabel(): String =
+    System.getProperty("java.version") ?: "n/a"

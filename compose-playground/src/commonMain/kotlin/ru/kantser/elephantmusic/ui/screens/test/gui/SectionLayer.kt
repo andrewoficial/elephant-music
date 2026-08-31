@@ -30,6 +30,12 @@ data class PlaybackUi(
         get() = if (duration > 0) (position / duration).toFloat().coerceIn(0f, 1f) else 0f
 }
 
+/** Данные раздела «Отладка эмулятора»: заголовок и строки отладочной информации. */
+data class DebugUi(
+    val title: String = "Отладка SVG",
+    val lines: List<String> = emptyList(),
+)
+
 /**
  * Контент разделов экрана (всё, кроме главного меню): список треков (Файлы), «сейчас играет»
  * (Музыка) и заглушки видео/фото/текст/запись/другие/настройки. Рисуется примитивами DrawScope
@@ -39,11 +45,13 @@ internal class SectionLayer(
     private val measurer: TextMeasurer,
     private val st: ScreenState,
     private val playback: PlaybackUi,
+    private val debug: DebugUi = DebugUi(),
 ) : DeviceLayer {
     override fun draw(scope: DrawScope) = with(scope) {
         when (st.mode) {
             ScreenMode.LIST -> drawTrackList(measurer, st)
             ScreenMode.NOW -> drawNowPlaying(measurer, playback)
+            ScreenMode.EMULATOR -> drawEmulator(measurer, debug)
             ScreenMode.VIDEO -> drawVideoStub(measurer)
             ScreenMode.PHOTO -> drawStub(measurer, "Фото", "Просмотр изображений", wrap = false)
             ScreenMode.TEXT -> drawStub(measurer, "Текст", LOREM, wrap = true)
@@ -211,6 +219,40 @@ private fun DrawScope.drawStub(measurer: TextMeasurer, title: String, bodyRaw: S
     }
     drawText(textLayoutResult = titleL, topLeft = Offset(baseX, a.top + 10f))
     drawText(textLayoutResult = bodyL, topLeft = Offset(baseX, a.top + 10f + titleL.size.height + 8f))
+}
+
+/** Отладочная страница эмулятора: заголовок и строки с переносом по словам, клип области. */
+private fun DrawScope.drawEmulator(measurer: TextMeasurer, ui: DebugUi) {
+    val a = ContentArea()
+    val textCol = G.MenuText
+    val baseX = a.left + 8f
+    val maxW = (a.width - 16f).toInt().coerceAtLeast(1)
+
+    clipRect(left = a.left, top = a.top, right = a.right, bottom = a.bottom) {
+        var y = a.top + 6f
+        drawText(
+            textLayoutResult = measurer.measure(
+                ui.title,
+                TextStyle(color = Color(0xFF0a3a70), fontSize = 12.sp),
+            ),
+            topLeft = Offset(baseX, y),
+        )
+        y += 17f
+
+        val lineStyle = TextStyle(color = textCol, fontSize = 9.5.sp, lineHeight = 13.sp)
+        for (line in ui.lines) {
+            val r = measurer.measure(
+                line,
+                lineStyle,
+                overflow = TextOverflow.Clip,
+                softWrap = true,
+                maxLines = Int.MAX_VALUE,
+                constraints = Constraints(maxWidth = maxW),
+            )
+            drawText(textLayoutResult = r, topLeft = Offset(baseX, y))
+            y += r.size.height + 3f
+        }
+    }
 }
 
 private fun fmtTime(seconds: Double): String {

@@ -65,3 +65,9 @@ actual fun scanAudioFilesInFolder(folder: String): List<String> {
 }
 
 actual fun settingsFolderPath(): String = Path.of(System.getProperty("user.home"), ".ElephantPlayer").toAbsolutePath().toString()
+
+actual fun platformRuntimeLabel(): String =
+    "desktop (${System.getProperty("os.name") ?: "unknown"})"
+
+actual fun javaVersionLabel(): String =
+    System.getProperty("java.version") ?: "n/a"
