@@ -53,6 +53,13 @@ object SvgGeometry {
             const val MenuX = 418.9f
             const val PlayY = 182f
             const val FwdY = 228f
+
+            // Охватывающие боксы значков (шеколография), в координатах устройства.
+            // Позиции/размеры выведены из реальной отрисовки (ButtonRail.drawGraphicIcons).
+            val RewindBox = RectGeom(IconX, RewindY, 18f, 12f, 0f)
+            val PlayBox = RectGeom(IconX, PlayY, 18f, 12f, 0f)
+            val FwdBox = RectGeom(IconX + 7f, FwdY - 6f, 11f, 18f, 0f)
+            val MenuTopLeft = Offset(MenuX - 6f, MenuY - 14f)
         }
 
         // Невидимые зоны клика (иконка + зазор + кнопка = одно нажатие)

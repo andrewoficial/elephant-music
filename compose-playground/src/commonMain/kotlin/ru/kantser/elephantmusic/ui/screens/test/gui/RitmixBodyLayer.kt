@@ -33,11 +33,14 @@ object RitmixBodyLayer {
     fun logIconCoords(log: AppLog) {
         val i = PlayerGeo.Buttons.Icons
         val tag = "DebugSVG"
-        log.i(tag, "Icons  Rewind  bounds=(410,102,428,114)")
-        log.i(tag, "Icons  Menu(M) x=${i.MenuX} y=${i.MenuY} topLeft=(${(i.MenuX - 6).toInt()},${(i.MenuY - 14).toInt()})")
-        log.i(tag, "Icons  Play/Pause  bounds=(410,182,428,194)")
-        log.i(tag, "Icons  Fwd  bounds=(417,222,428,240)")
+        log.i(tag, "Icons  Rewind  bounds=${fmtBox(i.RewindBox)}")
+        log.i(tag, "Icons  Menu(M) topLeft=(${i.MenuTopLeft.x.toInt()},${i.MenuTopLeft.y.toInt()})")
+        log.i(tag, "Icons  Play/Pause  bounds=${fmtBox(i.PlayBox)}")
+        log.i(tag, "Icons  Fwd  bounds=${fmtBox(i.FwdBox)}")
     }
+
+    private fun fmtBox(g: ru.kantser.elephantmusic.ui.screens.player.RectGeom): String =
+        "(${g.x.toInt()},${g.y.toInt()})..(${(g.x + g.w).toInt()},${(g.y + g.h).toInt()})"
 
     @Composable
     fun View(showOutlines: Boolean, modifier: Modifier = Modifier) {

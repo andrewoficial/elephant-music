@@ -118,8 +118,7 @@ internal fun DrawScope.drawGraphicIcons() {
 
 /** Лейбл "M" (кнопка меню) на отладочном корпусе, рисуется текстом в канвасе. */
 internal fun DrawScope.drawMenuLabel(measurer: TextMeasurer) {
-    val i = Geo.Buttons.Icons
-    val tl = Offset(i.MenuX - 6f, i.MenuY - 14f)
+    val tl = Geo.Buttons.Icons.MenuTopLeft
     val layout = measurer.measure(
         text = "M",
         style = TextStyle(
