@@ -27,6 +27,7 @@ import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
 fun TestScreen() {
     var showCorners by remember { mutableStateOf(true) }
     var mode by remember { mutableStateOf(DebugViewMode.BODY) }
+    var menuIndex by remember { mutableStateOf(0) }
     val log: AppLog = koinInject()
 
     Column(Modifier.fillMaxSize()) {
@@ -41,6 +42,7 @@ fun TestScreen() {
                 showCorners = showCorners,
                 onToggleCorners = { showCorners = !showCorners },
                 onButton = { btn -> log.i("DebugSVG", "btn pressed: ${btn.name}") },
+                menuIndex = menuIndex,
             )
         }
         DebugPanel(

@@ -24,9 +24,10 @@ fun TestDeviceView(
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
     onButton: (DeviceButton) -> Unit,
+    menuIndex: Int = 0,
 ) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        DeviceScale { scaledContent(mode, showCorners, onToggleCorners, onButton) }
+        DeviceScale { scaledContent(mode, showCorners, onToggleCorners, onButton, menuIndex) }
     }
 }
 
@@ -36,6 +37,7 @@ private fun scaledContent(
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
     onButton: (DeviceButton) -> Unit,
+    menuIndex: Int = 0,
 ) {
     Box(
         Modifier
@@ -44,7 +46,7 @@ private fun scaledContent(
         contentAlignment = Alignment.TopStart,
     ) {
         if (mode == DebugViewMode.BODY) {
-            RitmixBodyLayer.View(showCorners, onButton, Modifier.matchParentSize())
+            RitmixBodyLayer.View(showCorners, onButton, menuIndex, Modifier.matchParentSize())
         } else {
             RectLayerRed.View(Modifier.matchParentSize())
             RectLayerBlue.View(Modifier.matchParentSize())
