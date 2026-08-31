@@ -16,7 +16,7 @@ import ru.kantser.elephantmusic.ui.screens.player.SvgGradients as G
 import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
 
 /**
- * Слой главного меню экрана: пункты (HOME_ITEMS) в светлой зоне + подсветка выбранного
+ * Слой главного меню экрана: окно пунктов (HOME_ITEMS) в светлой зоне + подсветка выбранного
  * (G.SelectedFill во всю ширину светлой зоны и высоту строки, как в оригинале)
  * + пиктограмма выбранного пункта на синей боковой панели.
  *
@@ -27,11 +27,27 @@ import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
 internal class MenuListLayer(
     private val measurer: TextMeasurer,
     private val menuIndex: Int,
+    private val scrollIndex: Int,
 ) : DeviceLayer {
     override fun draw(scope: DrawScope) = with(scope) {
-        drawMenuList(measurer, menuIndex)
+        drawMenuList(measurer, menuIndex, scrollIndex)
         drawMenuPanelIcon(menuIndex)
     }
+}
+
+/** Метрики раскладки списка меню (количество строк = MenuScroll.VISIBLE_ROWS). */
+private class MenuMetrics(
+    val startY: Float,      // y первого видимого пункта (frame-local)
+    val pitch: Float,       // шаг по вертикали (frame-local)
+    val rowHeight: Float,   // высота отрисовки пункта (pitch - 1: пункты на 1px уже)
+)
+
+private fun menuMetrics(sc: PlayerGeo.Screen): MenuMetrics {
+    val n = MenuScroll.VISIBLE_ROWS
+    val contentTop = sc.LightY + sc.TopBarH
+    val contentBottom = sc.LightY + sc.LightH
+    val pitch = (contentBottom - contentTop) / n
+    return MenuMetrics(startY = contentTop, pitch = pitch, rowHeight = pitch - 1f)
 }
 
 /** Пиктограмма выбранного пункта меню на синей боковой панели, по центру. */
@@ -50,42 +66,42 @@ private fun DrawScope.drawMenuPanelIcon(menuIndex: Int) {
 }
 
 /**
- * Пункты главного меню (HOME_ITEMS) в светлой зоне экрана.
- * Координаты берутся из Screen в локальных координатах рамки дисплея (MenuX, HOME_Y),
- * поэтому совпадают с отрисовкой экрана в drawScreenBackground.
- *
- * Отрисовка ограничена областью контента экрана (ниже верхней полосы TopBarH): пункты,
- * выходящие за её нижнюю границу, не показываются. Это решает «вылезание» текста за экран
- * и является основой для будущей прокрутки списка (сдвиг строк внутри этого клипа).
+ * Главное меню (HOME_ITEMS). Отрисовывается только окно [scrollIndex, scrollIndex+N),
+ * привязанное к верху области контента экрана; пункты, выходящие за окно, не рисуются
+ * (это и есть «листалка»). Выбранный пункт всегда в окне — подсветка никогда не исчезает.
+ * Смещение окна управляется из TestScreen через [MenuScroll.fitScroll].
  */
-private fun DrawScope.drawMenuList(measurer: TextMeasurer, menuIndex: Int) {
+private fun DrawScope.drawMenuList(measurer: TextMeasurer, menuIndex: Int, scrollIndex: Int) {
     val origin = PlayerGeo.DisplayFrame.topLeft
     val sc = PlayerGeo.Screen
+    val m = menuMetrics(sc)
+
     val left = origin.x + sc.LightX
-    val top = origin.y + sc.LightY + sc.TopBarH
+    val top = origin.y + m.startY
     val right = left + sc.LightW
-    val bottom = top + (sc.LightH - sc.TopBarH)
+    val bottom = origin.y + m.startY + MenuScroll.VISIBLE_ROWS * m.pitch
 
     clipRect(left = left, top = top, right = right, bottom = bottom) {
-        val rowHeight = sc.HOME_Y[1] - sc.HOME_Y[0]
-        val sel = menuIndex.coerceIn(HOME_ITEMS.indices)
+        val style = TextStyle(color = Color.Red, fontSize = 13.sp)
+        val visible = (scrollIndex until scrollIndex + MenuScroll.VISIBLE_ROWS)
+            .filter { it in HOME_ITEMS.indices }
 
-        // Подсветка выбранного пункта: прямоугольник во всю ширину светлой зоны и высоту строки.
-        val hlTopLeft = Offset(origin.x + sc.LightX, origin.y + sc.HOME_Y[sel])
+        // Подсветка выбранного пункта (всегда в окне).
+        val hlY = origin.y + m.startY + (menuIndex - scrollIndex) * m.pitch
         drawRoundRect(
             G.SelectedFill,
-            hlTopLeft,
-            Size(sc.LightW, rowHeight),
+            Offset(origin.x + sc.LightX, hlY),
+            Size(sc.LightW, m.rowHeight),
             CornerRadius(2f),
         )
 
-        // Пункты меню поверх подсветки.
-        val style = TextStyle(color = Color.Red, fontSize = 13.sp)
-        HOME_ITEMS.forEachIndexed { i, label ->
-            val layout = measurer.measure(label, style)
+        // Пункты окна.
+        visible.forEach { i ->
+            val layout = measurer.measure(HOME_ITEMS[i], style)
+            val y = origin.y + m.startY + (i - scrollIndex) * m.pitch
             drawText(
                 textLayoutResult = layout,
-                topLeft = Offset(origin.x + sc.MenuX, origin.y + sc.HOME_Y[i]),
+                topLeft = Offset(origin.x + sc.MenuX, y),
             )
         }
     }

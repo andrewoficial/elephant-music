@@ -93,6 +93,7 @@ object RitmixBodyLayer {
         showOutlines: Boolean,
         onButton: (DeviceButton) -> Unit,
         menuIndex: Int = 0,
+        scrollIndex: Int = 0,
         modifier: Modifier = Modifier,
     ) {
         val log: AppLog = koinInject()
@@ -103,14 +104,14 @@ object RitmixBodyLayer {
         Box(modifier) {
             Canvas(Modifier.fillMaxSize()) {
                 drawInDeviceSpace {
-                    draw(measurer, showOutlines, menuIndex)
+                    draw(measurer, showOutlines, menuIndex, scrollIndex)
                 }
             }
             ButtonHitZones(lb, onButton)
         }
     }
 
-    fun DrawScope.draw(measurer: TextMeasurer, showOutlines: Boolean, menuIndex: Int = 0) {
+    fun DrawScope.draw(measurer: TextMeasurer, showOutlines: Boolean, menuIndex: Int = 0, scrollIndex: Int = 0) {
         val lb = letterbox()
         withTransform({
             translate(lb.dx, lb.dy)
@@ -124,7 +125,7 @@ object RitmixBodyLayer {
                 LogoLayer,
                 FrameLayer,
                 ScreenLayer,
-                MenuListLayer(measurer, menuIndex),
+                MenuListLayer(measurer, menuIndex, scrollIndex),
                 ButtonsLayer(measurer),
                 if (showOutlines) OutlinesLayer else null,
             )

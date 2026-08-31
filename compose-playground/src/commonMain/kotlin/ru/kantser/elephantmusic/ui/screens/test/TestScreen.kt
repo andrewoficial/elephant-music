@@ -17,6 +17,7 @@ import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
 import ru.kantser.elephantmusic.ui.screens.player.HOME_ITEMS
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugPanel
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugViewMode
+import ru.kantser.elephantmusic.ui.screens.test.gui.MenuScroll
 import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
 
 /**
@@ -30,6 +31,7 @@ fun TestScreen() {
     var showCorners by remember { mutableStateOf(true) }
     var mode by remember { mutableStateOf(DebugViewMode.BODY) }
     var menuIndex by remember { mutableStateOf(0) }
+    var scrollIndex by remember { mutableStateOf(0) }
     val log: AppLog = koinInject()
 
     Column(Modifier.fillMaxSize()) {
@@ -45,12 +47,19 @@ fun TestScreen() {
                 onToggleCorners = { showCorners = !showCorners },
                 onButton = { btn ->
                     when (btn) {
-                        DeviceButton.REWIND -> menuIndex = (menuIndex - 1).mod(HOME_ITEMS.size)
-                        DeviceButton.FWD -> menuIndex = (menuIndex + 1).mod(HOME_ITEMS.size)
+                        DeviceButton.REWIND -> {
+                            menuIndex = (menuIndex - 1).mod(HOME_ITEMS.size)
+                            scrollIndex = MenuScroll.fitScroll(HOME_ITEMS.size, scrollIndex, menuIndex)
+                        }
+                        DeviceButton.FWD -> {
+                            menuIndex = (menuIndex + 1).mod(HOME_ITEMS.size)
+                            scrollIndex = MenuScroll.fitScroll(HOME_ITEMS.size, scrollIndex, menuIndex)
+                        }
                         else -> log.i("DebugSVG", "btn pressed: ${btn.name}")
                     }
                 },
                 menuIndex = menuIndex,
+                scrollIndex = scrollIndex,
             )
         }
         DebugPanel(
