@@ -140,6 +140,34 @@ object MenuIcons {
         drawPath(gearPath(center = Offset(100f, 100f)), IconColor)
     }
 
+    /** Уровень заряда батарейки (по образцу SVG Ritmix). */
+    enum class BatteryLevel(val bars: Int) {
+        FULL(3), MID(2), LOW(1), EMPTY(0),
+    }
+
+    /**
+     * Батарейка (раскладка 200×200, как в наборе SVG Ritmix): контакт слева, контур корпуса
+     * и заполнители уровня внутри. Горят ПРАВЫЕ полосы, левые гаснут по мере разряда.
+     */
+    fun drawBatteryIcon(scope: DrawScope, level: BatteryLevel = BatteryLevel.FULL, color: Color = IconColor) {
+        with(scope) {
+            val c = color
+            // Контакт (торчит слева).
+            drawRoundRect(c, Offset(35f, 82f), Size(21f, 36f), CornerRadius(8f))
+            // Корпус-контур.
+            drawRoundRect(c, Offset(56f, 64f), Size(128f, 72f), CornerRadius(10f), style = Stroke(12f))
+            // Заполнители: правые полосы остаются, левые гаснут.
+            val bars = arrayOf(
+                Offset(73f, 75.5f) to Size(25f, 49f),
+                Offset(107.5f, 75.5f) to Size(25f, 49f),
+                Offset(142f, 75.5f) to Size(25f, 49f),
+            )
+            bars.takeLast(level.bars).forEach { (o, s) ->
+                drawRoundRect(c, o, s, CornerRadius(6f))
+            }
+        }
+    }
+
     /** Шестерня: восьмизубый контур с отверстием (even-odd). */
     private fun gearPath(center: Offset, outer: Float = 80f, toothH: Float = 18f, teeth: Int = 8, holeR: Float = 20f): Path {
         val n = teeth * 2
