@@ -61,7 +61,7 @@ fun ButtonRail(
     }
 }
 
-private fun DrawScope.drawRailMetal() {
+internal fun DrawScope.drawRailMetal() {
     val b = Geo.Buttons
     // Общий цилиндр металла по силуэту (btnMetal)
     for (i in 0 until 4) {

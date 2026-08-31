@@ -19,6 +19,7 @@ import ru.kantser.elephantmusic.ui.screens.player.drawBodyBlueprint
 import ru.kantser.elephantmusic.ui.screens.player.drawGraphicIcons
 import ru.kantser.elephantmusic.ui.screens.player.drawMenuLabel
 import ru.kantser.elephantmusic.ui.screens.player.drawPlayerBody
+import ru.kantser.elephantmusic.ui.screens.player.drawRailMetal
 import ru.kantser.elephantmusic.ui.screens.player.drawPlayerFrame
 import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
 
@@ -29,15 +30,23 @@ import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
  * Сверху — тонкий чертёж прямоугольников (drawBodyBlueprint) как оверлей при showOutlines.
  */
 object RitmixBodyLayer {
-    /** Печать в терминал координат каждого значка/лейбла кнопок (один раз при входе в BODY). */
+    /** Печать в терминал координат кнопочного бруска и значков/лейбла (один раз при входе в BODY). */
     fun logIconCoords(log: AppLog) {
-        val i = PlayerGeo.Buttons.Icons
         val tag = "DebugSVG"
-        log.i(tag, "Icons  Rewind  bounds=${fmtBox(i.RewindBox)}")
-        log.i(tag, "Icons  Menu(M) topLeft=(${i.MenuTopLeft.x.toInt()},${i.MenuTopLeft.y.toInt()})")
-        log.i(tag, "Icons  Play/Pause  bounds=${fmtBox(i.PlayBox)}")
-        log.i(tag, "Icons  Fwd  bounds=${fmtBox(i.FwdBox)}")
+        val b = PlayerGeo.Buttons
+        log.i(tag, "Rail   bodyBounds=${fmtBox(RectGeomP(b.BodyX, b.BodyY0, b.BodyW, 4 * b.Step))} step=${b.Step}")
+        ru.kantser.elephantmusic.ui.screens.player.DeviceButton.entries.forEachIndexed { n, btn ->
+            val y = b.bodyY(n)
+            log.i(tag, "Rail   ${btn.name.padEnd(11)}body=${fmtBox(RectGeomP(b.BodyX, y, b.BodyW, b.BodyH))}")
+        }
+        log.i(tag, "Icons  Rewind  bounds=${fmtBox(PlayerGeo.Buttons.Icons.RewindBox)}")
+        log.i(tag, "Icons  Menu(M) topLeft=(${PlayerGeo.Buttons.Icons.MenuTopLeft.x.toInt()},${PlayerGeo.Buttons.Icons.MenuTopLeft.y.toInt()})")
+        log.i(tag, "Icons  Play/Pause  bounds=${fmtBox(PlayerGeo.Buttons.Icons.PlayBox)}")
+        log.i(tag, "Icons  Fwd  bounds=${fmtBox(PlayerGeo.Buttons.Icons.FwdBox)}")
     }
+
+    private fun RectGeomP(x: Float, y: Float, w: Float, h: Float) =
+        ru.kantser.elephantmusic.ui.screens.player.RectGeom(x, y, w, h, 0f)
 
     private fun fmtBox(g: ru.kantser.elephantmusic.ui.screens.player.RectGeom): String =
         "(${g.x.toInt()},${g.y.toInt()})..(${(g.x + g.w).toInt()},${(g.y + g.h).toInt()})"
@@ -62,15 +71,15 @@ object RitmixBodyLayer {
             translate(dx, dy)
             scale(s, s, pivot = Offset.Zero)
         }) {
-            // Слои прибора в реальном порядке: корпус → логотип → рамка → экран → значки → (чертёж).
-            // Благодаря DeviceLayer оркестратор не знает устройства слоёв (OCP): кнопки = новый слой.
+            // Слои прибора в реальном порядке: корпус → логотип → рамка → экран → кнопки → (чертёж).
+            // Благодаря DeviceLayer оркестратор не знает устройства слоёв (OCP): кнопки — это слой,
+            // добавить/убрать их можно просто правкой списка, не трогая оркестратор.
             val layers: List<DeviceLayer?> = listOf(
                 BodyLayer,
                 LogoLayer,
                 FrameLayer,
                 ScreenLayer,
-                GraphicIconsLayer,
-                MenuLabelLayer(measurer),
+                ButtonsLayer(measurer),
                 if (showOutlines) OutlinesLayer else null,
             )
             layers.forEach { layer -> layer?.draw(this) }
@@ -93,12 +102,13 @@ object RitmixBodyLayer {
         override fun draw(scope: DrawScope) = with(scope) { drawScreenBackground() }
     }
 
-    private object GraphicIconsLayer : DeviceLayer {
-        override fun draw(scope: DrawScope) = with(scope) { drawGraphicIcons() }
-    }
-
-    private class MenuLabelLayer(private val measurer: TextMeasurer) : DeviceLayer {
-        override fun draw(scope: DrawScope) = with(scope) { drawMenuLabel(measurer) }
+    /** Физический кнопочный брусок: металл + фаски (drawRailMetal) + шелкография (значки и лейбл "M"). */
+    private class ButtonsLayer(private val measurer: TextMeasurer) : DeviceLayer {
+        override fun draw(scope: DrawScope) = with(scope) {
+            drawRailMetal()
+            drawGraphicIcons()
+            drawMenuLabel(measurer)
+        }
     }
 
     private object OutlinesLayer : DeviceLayer {
