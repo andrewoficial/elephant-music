@@ -156,13 +156,32 @@ object RitmixBodyLayer {
 
     /**
      * Один пункт + подсветка выбранного (прямоугольник G.SelectedFill во всю ширину светлой
-     * зоны и высоту строки, как в оригинале). Параметры — в локальных координатах рамки дисплея.
+     * зоны и высоту строки, как в оригинале) + пиктограмма в синей панели справа.
+     * Параметры — в локальных координатах рамки дисплея.
      */
     private class MenuListLayer(
         private val measurer: TextMeasurer,
         private val menuIndex: Int,
     ) : DeviceLayer {
-        override fun draw(scope: DrawScope) = with(scope) { drawMenuList(measurer, menuIndex) }
+        override fun draw(scope: DrawScope) = with(scope) {
+            drawMenuList(measurer, menuIndex)
+            drawMenuPanelIcon(menuIndex)
+        }
+    }
+
+    /** Пиктограмма выбранного пункта меню на синей боковой панели, по центру. */
+    private fun DrawScope.drawMenuPanelIcon(menuIndex: Int) {
+        val origin = PlayerGeo.DisplayFrame.topLeft
+        val p = PlayerGeo.Screen
+        val iconSize = 80f
+        val cx = origin.x + p.PanelX + p.PanelW / 2f
+        val cy = origin.y + p.PanelY + p.PanelH / 2f
+        withTransform({
+            translate(cx - iconSize / 2f, cy - iconSize / 2f)
+            scale(iconSize / 200f, iconSize / 200f, pivot = Offset.Zero)
+        }) {
+            MenuIcons.drawMenuIcon(this, menuIndex)
+        }
     }
 
     /** Физический кнопочный брусок: металл + фаски (drawRailMetal) + шелкография (значки и лейбл "M"). */
