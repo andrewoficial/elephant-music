@@ -22,9 +22,6 @@ import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
-/** Имена углов в порядке corners: [левый-верх, правый-верх, правый-низ, левый-низ]. */
-private val CornerNames = listOf("ЛВ", "ПВ", "ПН", "ЛН")
-
 /**
  * Отладочная панель: координаты углов фигур (копируемо), легенда координат, показания
  * окна/области поля, переключатель вида (поле/корпус плеера), оверлей на плеере
@@ -44,24 +41,12 @@ fun DebugPanel(
     val log: AppLog = koinInject()
     val density = LocalDensity.current
 
-    fun fmt(g: RectGeom): String =
-        "[" + g.corners.mapIndexed { i, c -> "${CornerNames[i]}(${c.x.toInt()},${c.y.toInt()})" }
-            .joinToString(" ") + "]"
-
-    fun fmtP(g: ru.kantser.elephantmusic.ui.screens.player.RectGeom): String =
-        "[" + listOf(
-            "ЛВ(${g.x.toInt()},${g.y.toInt()})",
-            "ПВ(${(g.x + g.w).toInt()},${g.y.toInt()})",
-            "ПН(${(g.x + g.w).toInt()},${(g.y + g.h).toInt()})",
-            "ЛН(${g.x.toInt()},${(g.y + g.h).toInt()})",
-        ).joinToString(" ") + "]"
-
     LaunchedEffect(mode) {
         if (mode == DebugViewMode.BODY) {
             log.i("DebugSVG", "device=${PlayerGeo.W.toInt()}x${PlayerGeo.H.toInt()} guiScale=${debug.appliedScale}")
-            log.i("DebugSVG", "Shell   ${fmtP(PlayerGeo.BodyShell)}")
-            log.i("DebugSVG", "Edge    ${fmtP(PlayerGeo.BodyEdge)}")
-            log.i("DebugSVG", "Frame   ${fmtP(PlayerGeo.DisplayFrame)}")
+            log.i("DebugSVG", "Shell   ${formatCornersP(PlayerGeo.BodyShell)}")
+            log.i("DebugSVG", "Edge    ${formatCornersP(PlayerGeo.BodyEdge)}")
+            log.i("DebugSVG", "Frame   ${formatCornersP(PlayerGeo.DisplayFrame)}")
         }
     }
 
@@ -114,14 +99,14 @@ fun DebugPanel(
                     "экран ${it.widthPx}x${it.heightPx}px dpi=${it.densityDpi.toInt()} ос-масштаб=${it.scaleFactor}"
                 } ?: "экран: нет данных", style = MaterialTheme.typography.bodySmall)
                 if (mode == DebugViewMode.FIELD) {
-                    Text("Красный ${fmt(Geo.Red)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Синий  ${fmt(Geo.Blue)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Белый  ${fmt(Geo.White)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Красный ${formatCorners(Geo.Red)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Синий  ${formatCorners(Geo.Blue)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Белый  ${formatCorners(Geo.White)}", style = MaterialTheme.typography.bodySmall)
                 } else {
-                    Text("Shell  ${fmtP(PlayerGeo.BodyShell)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Edge   ${fmtP(PlayerGeo.BodyEdge)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Face   ${fmtP(PlayerGeo.BodyFace)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Frame  ${fmtP(PlayerGeo.DisplayFrame)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Shell  ${formatCornersP(PlayerGeo.BodyShell)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Edge   ${formatCornersP(PlayerGeo.BodyEdge)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Face   ${formatCornersP(PlayerGeo.BodyFace)}", style = MaterialTheme.typography.bodySmall)
+                    Text("Frame  ${formatCornersP(PlayerGeo.DisplayFrame)}", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
