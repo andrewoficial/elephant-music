@@ -12,11 +12,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.player.SvgGeometry as PlayerGeo
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
@@ -39,6 +41,7 @@ fun DebugPanel(
     val dpi: GuiDpiService = koinInject()
     val scale: GuiScaleService = koinInject()
     val debug: GuiDebugState = koinInject()
+    val log: AppLog = koinInject()
     val density = LocalDensity.current
 
     fun fmt(g: RectGeom): String =
@@ -52,6 +55,15 @@ fun DebugPanel(
             "ПН(${(g.x + g.w).toInt()},${(g.y + g.h).toInt()})",
             "ЛН(${g.x.toInt()},${(g.y + g.h).toInt()})",
         ).joinToString(" ") + "]"
+
+    LaunchedEffect(mode) {
+        if (mode == DebugViewMode.BODY) {
+            log.i("DebugSVG", "device=${PlayerGeo.W.toInt()}x${PlayerGeo.H.toInt()} guiScale=${debug.appliedScale}")
+            log.i("DebugSVG", "Shell   ${fmtP(PlayerGeo.BodyShell)}")
+            log.i("DebugSVG", "Edge    ${fmtP(PlayerGeo.BodyEdge)}")
+            log.i("DebugSVG", "Frame   ${fmtP(PlayerGeo.DisplayFrame)}")
+        }
+    }
 
     val winLine = debug.windowSize?.let { "окно ${it.width.value.toInt()}x${it.height.value.toInt()} dp" } ?: "окно: нет данных"
     val fieldLine = "область поля ${debug.fieldPx.width.toInt()}x${debug.fieldPx.height.toInt()} dp"
