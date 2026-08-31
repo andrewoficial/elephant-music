@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
 import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
 
 /**
@@ -15,16 +16,17 @@ import ru.kantser.elephantmusic.ui.screens.test.gui.GuiGeometry as Geo
  * логический холст GuiGeometry.W x GuiGeometry.H, масштабируется под доступную площадь
  * через GuiScaleService (DeviceScale).
  *  - FIELD: красный → синий → белый → маркеры углов;
- *  - BODY:  реальный корпус плеера с экраном (RitmixBodyLayer).
+ *  - BODY:  реальный корпус плеера с экраном (RitmixBodyLayer) + клики по кнопкам.
  */
 @Composable
 fun TestDeviceView(
     mode: DebugViewMode,
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
+    onButton: (DeviceButton) -> Unit,
 ) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        DeviceScale { scaledContent(mode, showCorners, onToggleCorners) }
+        DeviceScale { scaledContent(mode, showCorners, onToggleCorners, onButton) }
     }
 }
 
@@ -33,6 +35,7 @@ private fun scaledContent(
     mode: DebugViewMode,
     showCorners: Boolean,
     onToggleCorners: () -> Unit,
+    onButton: (DeviceButton) -> Unit,
 ) {
     Box(
         Modifier
@@ -41,7 +44,7 @@ private fun scaledContent(
         contentAlignment = Alignment.TopStart,
     ) {
         if (mode == DebugViewMode.BODY) {
-            RitmixBodyLayer.View(showCorners, Modifier.matchParentSize())
+            RitmixBodyLayer.View(showCorners, onButton, Modifier.matchParentSize())
         } else {
             RectLayerRed.View(Modifier.matchParentSize())
             RectLayerBlue.View(Modifier.matchParentSize())

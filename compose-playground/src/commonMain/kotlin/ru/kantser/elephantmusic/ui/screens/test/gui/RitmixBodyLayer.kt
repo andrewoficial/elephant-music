@@ -1,6 +1,11 @@
 package ru.kantser.elephantmusic.ui.screens.test.gui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -12,8 +17,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import ru.kantser.elephantmusic.platform.AppLog
+import ru.kantser.elephantmusic.ui.screens.player.DeviceButton
 import ru.kantser.elephantmusic.ui.screens.player.RitmixLogo
 import ru.kantser.elephantmusic.ui.screens.player.SvgGradients as G
 import ru.kantser.elephantmusic.ui.screens.player.drawBodyBlueprint
@@ -52,25 +59,61 @@ object RitmixBodyLayer {
     private fun fmtBox(g: ru.kantser.elephantmusic.ui.screens.player.RectGeom): String =
         "(${g.x.toInt()},${g.y.toInt()})..(${(g.x + g.w).toInt()},${(g.y + g.h).toInt()})"
 
+    /** Параметры letterbox-вписывания устройства 520x350 в поле GuiGeometry (300x300). */
+    private class Letterbox(val s: Float, val dx: Float, val dy: Float)
+
+    private fun letterbox(): Letterbox {
+        val s = minOf(GuiGeometry.W / PlayerGeo.W, GuiGeometry.H / PlayerGeo.H)
+        return Letterbox(
+            s,
+            (GuiGeometry.W - PlayerGeo.W * s) / 2f,
+            (GuiGeometry.H - PlayerGeo.H * s) / 2f,
+        )
+    }
+
+    /** Невидимые кликабельные зоны кнопок поверх Canvas, в тех же letterbox-координатах. */
     @Composable
-    fun View(showOutlines: Boolean, modifier: Modifier = Modifier) {
+    private fun ButtonHitZones(lb: Letterbox, onButton: (DeviceButton) -> Unit) {
+        val hz = PlayerGeo.Buttons.HitZones
+        val step = PlayerGeo.Buttons.Step
+        DeviceButton.entries.forEachIndexed { i, btn ->
+            val x = lb.dx + hz.x * lb.s
+            val y = lb.dy + (hz.y + i * step) * lb.s
+            Box(
+                Modifier
+                    .offset(x = x.dp, y = y.dp)
+                    .size((hz.w * lb.s).dp, (hz.h * lb.s).dp)
+                    .clickable { onButton(btn) },
+            )
+        }
+    }
+
+    @Composable
+    fun View(
+        showOutlines: Boolean,
+        onButton: (DeviceButton) -> Unit,
+        modifier: Modifier = Modifier,
+    ) {
         val log: AppLog = koinInject()
         val measurer = rememberTextMeasurer()
         LaunchedEffect(Unit) { logIconCoords(log) }
-        Canvas(modifier) {
-            drawInDeviceSpace {
-                draw(measurer, showOutlines)
+
+        val lb = letterbox()
+        Box(modifier) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawInDeviceSpace {
+                    draw(measurer, showOutlines)
+                }
             }
+            ButtonHitZones(lb, onButton)
         }
     }
 
     fun DrawScope.draw(measurer: TextMeasurer, showOutlines: Boolean) {
-        val s = minOf(GuiGeometry.W / PlayerGeo.W, GuiGeometry.H / PlayerGeo.H)
-        val dx = (GuiGeometry.W - PlayerGeo.W * s) / 2f
-        val dy = (GuiGeometry.H - PlayerGeo.H * s) / 2f
+        val lb = letterbox()
         withTransform({
-            translate(dx, dy)
-            scale(s, s, pivot = Offset.Zero)
+            translate(lb.dx, lb.dy)
+            scale(lb.s, lb.s, pivot = Offset.Zero)
         }) {
             // Слои прибора в реальном порядке: корпус → логотип → рамка → экран → кнопки → (чертёж).
             // Благодаря DeviceLayer оркестратор не знает устройства слоёв (OCP): кнопки — это слой,

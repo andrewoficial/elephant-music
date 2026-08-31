@@ -11,6 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import org.koin.compose.koinInject
+import ru.kantser.elephantmusic.platform.AppLog
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugPanel
 import ru.kantser.elephantmusic.ui.screens.test.gui.DebugViewMode
 import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
@@ -25,6 +27,7 @@ import ru.kantser.elephantmusic.ui.screens.test.gui.TestDeviceView
 fun TestScreen() {
     var showCorners by remember { mutableStateOf(true) }
     var mode by remember { mutableStateOf(DebugViewMode.BODY) }
+    val log: AppLog = koinInject()
 
     Column(Modifier.fillMaxSize()) {
         Box(
@@ -37,6 +40,7 @@ fun TestScreen() {
                 mode = mode,
                 showCorners = showCorners,
                 onToggleCorners = { showCorners = !showCorners },
+                onButton = { btn -> log.i("DebugSVG", "btn pressed: ${btn.name}") },
             )
         }
         DebugPanel(
