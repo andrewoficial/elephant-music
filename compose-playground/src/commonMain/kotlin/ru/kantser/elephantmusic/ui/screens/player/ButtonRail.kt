@@ -25,6 +25,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,7 +100,7 @@ private fun DrawScope.drawRailMetal() {
 private fun tri(d: String): Path = PathParser().parsePathString(d).toPath()
 
 /** Графические иконки (стрелки/бары). "M" рисуется отдельно настоящим Text. */
-private fun DrawScope.drawGraphicIcons() {
+internal fun DrawScope.drawGraphicIcons() {
     val c = G.IconColor
     // ReWind
     drawRect(c, Offset(410f, 102f), Size(2.2f, 12f))
@@ -111,6 +114,21 @@ private fun DrawScope.drawGraphicIcons() {
     drawPath(tri("m 417,228 -7,-6 v 12 z"), c)
     drawPath(tri("m 425,228 -7,-6 v 12 z"), c)
     drawRect(c, Offset(425.8f, 222f), Size(2.2f, 12f))
+}
+
+/** Лейбл "M" (кнопка меню) на отладочном корпусе, рисуется текстом в канвасе. */
+internal fun DrawScope.drawMenuLabel(measurer: TextMeasurer) {
+    val i = Geo.Buttons.Icons
+    val tl = Offset(i.MenuX - 6f, i.MenuY - 14f)
+    val layout = measurer.measure(
+        text = "M",
+        style = TextStyle(
+            color = G.IconColor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        ),
+    )
+    drawText(textLayoutResult = layout, topLeft = tl)
 }
 
 @Composable
