@@ -12,4 +12,7 @@ data class Track(
     val tags: List<String> = emptyList(),
     val coverArtPath: String? = null,
     val lyrics: String? = null,
+    val album: String? = null,
+    val year: String? = null,
+    val genre: String? = null,
 )

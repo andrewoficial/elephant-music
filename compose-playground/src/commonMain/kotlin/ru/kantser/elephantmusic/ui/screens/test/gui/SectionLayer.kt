@@ -25,6 +25,7 @@ data class PlaybackUi(
     val isPlaying: Boolean = false,
     val position: Double = 0.0,
     val duration: Double = 0.0,
+    val levels: List<Float> = emptyList(),
 ) {
     val progress: Float
         get() = if (duration > 0) (position / duration).toFloat().coerceIn(0f, 1f) else 0f
@@ -46,11 +47,12 @@ internal class SectionLayer(
     private val st: ScreenState,
     private val playback: PlaybackUi,
     private val debug: DebugUi = DebugUi(),
+    private val marqueeOffset: Float = 0f,
 ) : DeviceLayer {
     override fun draw(scope: DrawScope) = with(scope) {
         when (st.mode) {
             ScreenMode.LIST -> drawTrackList(measurer, st)
-            ScreenMode.NOW -> drawNowPlaying(measurer, playback)
+            ScreenMode.NOW -> drawNowPlaying(measurer, playback, marqueeOffset)
             ScreenMode.EMULATOR -> drawEmulator(measurer, debug)
             ScreenMode.VIDEO -> drawVideoStub(measurer)
             ScreenMode.PHOTO -> drawStub(measurer, "Фото", "Просмотр изображений", wrap = false)
@@ -114,7 +116,7 @@ private fun DrawScope.drawTrackList(measurer: TextMeasurer, st: ScreenState) {
     }
 }
 
-private fun DrawScope.drawNowPlaying(measurer: TextMeasurer, pb: PlaybackUi) {
+private fun DrawScope.drawNowPlaying(measurer: TextMeasurer, pb: PlaybackUi, marqueeOffset: Float = 0f) {
     val a = ContentArea()
     val textCol = G.MenuText
     val baseX = a.left + 10f
@@ -127,10 +129,22 @@ private fun DrawScope.drawNowPlaying(measurer: TextMeasurer, pb: PlaybackUi) {
     )
     y += 16f
 
-    drawText(
-        textLayoutResult = measurer.measure(pb.title.ifEmpty { "—" }, TextStyle(color = textCol, fontSize = 13.sp)),
-        topLeft = Offset(baseX, y),
-    )
+    // Название: если шире области — бегущая строка (marquee), иначе статичный текст.
+    val titleText = pb.title.ifEmpty { "—" }
+    val titleStyle = TextStyle(color = textCol, fontSize = 13.sp)
+    val titleLayout = measurer.measure(titleText, titleStyle)
+    val availW = a.right - a.left - 20f
+    if (titleLayout.size.width > availW) {
+        val gap = titleLayout.size.width * 0.25f
+        val total = titleLayout.size.width + gap
+        val off = marqueeOffset % total
+        clipRect(left = a.left, top = y, right = a.left + availW, bottom = y + titleLayout.size.height) {
+            drawText(titleLayout, topLeft = Offset(baseX - off, y))
+            drawText(titleLayout, topLeft = Offset(baseX - off + total, y))
+        }
+    } else {
+        drawText(titleLayout, topLeft = Offset(baseX, y))
+    }
     y += 17f
 
     drawText(
@@ -164,6 +178,27 @@ private fun DrawScope.drawNowPlaying(measurer: TextMeasurer, pb: PlaybackUi) {
         textLayoutResult = measurer.measure(transport, TextStyle(color = textCol, fontSize = 14.sp)),
         topLeft = Offset(barX, y),
     )
+    y += 24f
+
+    // Маленький белый «эквалайзер»: тонкие полоски, амплитуда — из реального аудио (pb.levels).
+    val src = pb.levels
+    val n = if (src.isEmpty()) 12 else minOf(src.size, 24)
+    val slot = 8f
+    val barW2 = 3f
+    val gap2 = 5f
+    val maxH = 12f
+    val stripW = n * slot - gap2
+    val x0 = a.left + (a.width - stripW) / 2f
+    for (i in 0 until n) {
+        val lvl = if (src.isEmpty()) 0f else src.getOrElse(i) { 0f }
+        val h = (1f + lvl.coerceIn(0f, 1f) * (maxH - 1f)).coerceAtLeast(1f)
+        drawRoundRect(
+            Color.White.copy(alpha = 0.9f),
+            Offset(x0 + i * slot, y + (maxH - h)),
+            Size(barW2, h),
+            CornerRadius(1f),
+        )
+    }
 }
 
 private fun DrawScope.drawVideoStub(measurer: TextMeasurer) {

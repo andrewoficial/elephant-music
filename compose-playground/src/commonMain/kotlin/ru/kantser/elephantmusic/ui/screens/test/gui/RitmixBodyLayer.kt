@@ -8,6 +8,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -108,11 +113,20 @@ object RitmixBodyLayer {
         val measurer = rememberTextMeasurer()
         LaunchedEffect(Unit) { logIconCoords(log) }
 
+        // Бегущая строка: тикает непрерывно и размораживает Canvas (draw перечитывает marquee).
+        var marquee by remember { mutableFloatStateOf(0f) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                withFrameMillis { }
+                marquee += 0.5f
+            }
+        }
+
         val lb = letterbox()
         Box(modifier) {
             Canvas(Modifier.fillMaxSize()) {
                 drawInDeviceSpace {
-                    draw(measurer, showOutlines, st, scrollIndex, playback, debug)
+                    draw(measurer, showOutlines, st, scrollIndex, playback, debug, marquee)
                 }
             }
             ButtonHitZones(lb, onButton)
@@ -126,6 +140,7 @@ object RitmixBodyLayer {
         scrollIndex: Int = 0,
         playback: PlaybackUi = PlaybackUi(),
         debug: DebugUi = DebugUi(),
+        marqueeOffset: Float = 0f,
     ) {
         val lb = letterbox()
         withTransform({
@@ -141,7 +156,7 @@ object RitmixBodyLayer {
             val contentLayer: DeviceLayer? = if (isHome) {
                 MenuListLayer(measurer, st.menuIndex, scrollIndex)
             } else {
-                SectionLayer(measurer, st, playback, debug)
+                SectionLayer(measurer, st, playback, debug, marqueeOffset)
             }
             val layers: List<DeviceLayer?> = listOf(
                 BodyLayer,

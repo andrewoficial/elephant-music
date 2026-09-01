@@ -9,4 +9,6 @@ data class PlayerUiState(
     val positionSeconds: Double = 0.0,
     val durationSeconds: Double = 0.0,
     val volume: Double = 0.8,
+    /** Нормализованные (0..1) уровни спектра по полосам — для визуализатора. */
+    val levels: List<Float> = emptyList(),
 )

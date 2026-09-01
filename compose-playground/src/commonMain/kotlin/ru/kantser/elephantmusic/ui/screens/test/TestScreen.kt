@@ -198,6 +198,7 @@ fun TestScreen() {
         isPlaying = s.isPlaying,
         position = s.positionSeconds,
         duration = s.durationSeconds,
+        levels = s.levels,
     )
 
     Column(Modifier.fillMaxSize()) {

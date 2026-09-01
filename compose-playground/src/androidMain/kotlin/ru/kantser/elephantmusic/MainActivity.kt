@@ -33,6 +33,11 @@ class MainActivity : ComponentActivity() {
         } else {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
+        requestIfMissing(permission)
+        requestIfMissing(Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun requestIfMissing(permission: String) {
         if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
             permissionRequest.launch(permission)
         }

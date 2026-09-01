@@ -45,9 +45,8 @@ import ru.kantser.elephantmusic.domain.controller.renamePlaylist
 import ru.kantser.elephantmusic.domain.controller.selectPlaylist
 import ru.kantser.elephantmusic.domain.model.Playlist
 import ru.kantser.elephantmusic.domain.model.Track
-import ru.kantser.elephantmusic.platform.chooseFolder
 import ru.kantser.elephantmusic.platform.pickAudioFiles
-import ru.kantser.elephantmusic.platform.scanAudioFilesInFolder
+import ru.kantser.elephantmusic.platform.pickAudioFolder
 import ru.kantser.elephantmusic.ui.theme.AppOrange
 import kotlinx.coroutines.launch
 
@@ -74,11 +73,15 @@ fun PlaylistScreen(controller: PlayerController) {
             HeaderButtons(
                 onAddFiles = { scope.launch { controller.addTracks(pickAudioFiles()) } },
                 onAddFolder = {
-                    val folder = chooseFolder("Выберите папку с аудиофайлами")
-                    if (folder != null) {
-                        val files = scanAudioFilesInFolder(folder)
+                    scope.launch {
+                        val files = pickAudioFolder()
                         if (files.isNotEmpty()) {
-                            val plName = folder.substringAfterLast('\\').substringAfterLast('/')
+                            val first = files.first()
+                            val parent = first.substringBeforeLast('/').substringBeforeLast('\\')
+                            val folderName = if (!first.startsWith("content://")) {
+                                parent.substringAfterLast('\\').substringAfterLast('/')
+                            } else ""
+                            val plName = folderName.ifBlank { "Аудио" }
                             if (controller.createPlaylist(plName)) {
                                 controller.addTracksToCurrentPlaylist(files)
                             } else {

@@ -66,6 +66,9 @@ actual fun scanAudioFilesInFolder(folder: String): List<String> {
 
 actual fun settingsFolderPath(): String = Path.of(System.getProperty("user.home"), ".ElephantPlayer").toAbsolutePath().toString()
 
+actual suspend fun pickAudioFolder(): List<String> =
+    chooseFolder("Выберите папку с аудиофайлами")?.let { scanAudioFilesInFolder(it) } ?: emptyList()
+
 actual fun platformRuntimeLabel(): String =
     "desktop (${System.getProperty("os.name") ?: "unknown"})"
 

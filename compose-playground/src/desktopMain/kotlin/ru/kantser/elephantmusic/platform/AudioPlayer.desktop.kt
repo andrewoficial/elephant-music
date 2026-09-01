@@ -10,6 +10,7 @@ import java.io.File
 import kotlin.math.min
 
 class DesktopAudioPlayer : AudioPlayer {
+    @Volatile
     private var file: File? = null
     private var format: AudioFormat? = null
     private var stream: AudioInputStream? = null
@@ -23,9 +24,17 @@ class DesktopAudioPlayer : AudioPlayer {
     @Volatile
     private var playing = false
 
+    @Volatile
     private var durationSeconds = 0.0
     private var onReady: (() -> Unit)? = null
     private var onEnd: (() -> Unit)? = null
+
+    override var onLevel: ((List<Float>) -> Unit)? = null
+
+    private companion object {
+        const val BAND_COUNT = 20
+    }
+    private val levels = FloatArray(BAND_COUNT)
 
     private val bytesPerSecond: Double
         get() = format?.let { it.sampleRate.toDouble() * it.frameSize } ?: 0.0
@@ -43,11 +52,24 @@ class DesktopAudioPlayer : AudioPlayer {
             this.file = file
 
             val fileFormat = AudioSystem.getAudioFileFormat(file)
-            durationSeconds = (fileFormat.getProperty("duration") as? Number)?.toLong()?.div(1_000_000.0)
-                ?: (fileFormat.frameLength.toDouble() / fileFormat.format.frameRate)
-
             val raw = AudioSystem.getAudioInputStream(file)
             val base = raw.format
+
+            // Черновая длительность — из числа кадров или свойства "duration".
+            // Внимание: единицы у разных SPI и у разных полей различаются (микро-/миллисекунды,
+            // число MP3-кадров против кадров PCM). Поэтому это только грубая прикидка;
+            // точное значение даёт фоновый проброс ниже, в тех же единицах, что и позиция.
+            val propDur = (fileFormat.getProperty("duration") as? Number)?.toDouble()
+            val propSeconds = propDur?.let { if (it >= 1_000_000.0) it / 1_000_000.0 else it / 1_000.0 }
+            durationSeconds = propSeconds
+                ?: if (fileFormat.frameLength > 0 && fileFormat.format.frameRate > 0f) {
+                    fileFormat.frameLength.toDouble() / fileFormat.format.frameRate
+                } else if (raw.frameLength > 0 && base.frameRate > 0f) {
+                    raw.frameLength.toDouble() / base.frameRate
+                } else {
+                    0.0
+                }
+
             format = AudioFormat(
                 AudioFormat.Encoding.PCM_SIGNED,
                 base.sampleRate,
@@ -58,6 +80,31 @@ class DesktopAudioPlayer : AudioPlayer {
                 false,
             )
             stream = AudioSystem.getAudioInputStream(format, raw)
+
+            // Точная длительность: декодируем файл в фоне и считаем суммарные PCM-байты.
+            // Делим на bytesPerSecond — те же единицы, что и currentPositionSeconds,
+            // поэтому прогресс не может «улететь» вперёд ни на одной платформе/формате.
+            val probeFile = file
+            Thread {
+                try {
+                    val rawProbe = AudioSystem.getAudioInputStream(probeFile)
+                    val probeFmt = format ?: return@Thread
+                    val decProbe = AudioSystem.getAudioInputStream(probeFmt, rawProbe)
+                    val bps = probeFmt.sampleRate.toDouble() * probeFmt.frameSize
+                    var total = 0L
+                    val buf = ByteArray(65536)
+                    while (true) {
+                        val n = decProbe.read(buf)
+                        if (n < 0) break
+                        total += n
+                    }
+                    decProbe.close()
+                    if (bps > 0 && total > 0 && probeFile === this.file) {
+                        durationSeconds = total / bps
+                    }
+                } catch (_: Exception) {
+                }
+            }.apply { isDaemon = true; name = "duration-probe"; start() }
 
             val info = DataLine.Info(SourceDataLine::class.java, format)
             val l = AudioSystem.getLine(info) as SourceDataLine
@@ -101,6 +148,7 @@ class DesktopAudioPlayer : AudioPlayer {
                     off += written
                 }
                 if (!manualStop) bytesWritten += n
+                computeLevels(buffer, n)
             }
         } catch (_: Exception) {
         }
@@ -125,6 +173,34 @@ class DesktopAudioPlayer : AudioPlayer {
         line?.flush()
         reopenAt(0)
         bytesWritten = 0
+    }
+
+    /** Считает RMS-энергии по [BAND_COUNT] полосам из куска PCM и вызывает onLevel. */
+    private fun computeLevels(buf: ByteArray, n: Int) {
+        val cb = onLevel ?: return
+        val samples = n / 2
+        if (samples < BAND_COUNT) return
+        val per = samples / BAND_COUNT
+        var any = false
+        for (b in 0 until BAND_COUNT) {
+            val start = b * per
+            val end = if (b == BAND_COUNT - 1) samples else start + per
+            var sum = 0.0
+            var i = start
+            while (i < end) {
+                val lo = buf[i * 2].toInt() and 0xFF
+                val hi = buf[i * 2 + 1].toInt()
+                val s = (hi shl 8) or lo
+                sum += s.toDouble() * s
+                i++
+            }
+            val rms = kotlin.math.sqrt(sum / per) / 32768.0
+            val v = rms.coerceIn(0.0, 1.0).toFloat()
+            if (v > levels[b]) levels[b] = v
+            else levels[b] = (levels[b] * 0.80f).coerceAtMost(v)
+            any = true
+        }
+        if (any) cb(levels.toList())
     }
 
     override fun release() {

@@ -15,6 +15,7 @@ import ru.kantser.elephantmusic.domain.repository.PlaylistRepository
 import ru.kantser.elephantmusic.domain.repository.PlayerStateRepository
 import ru.kantser.elephantmusic.domain.repository.SettingsRepository
 import ru.kantser.elephantmusic.platform.AudioPlayer
+import ru.kantser.elephantmusic.platform.readAudioMetadata
 import kotlin.math.absoluteValue
 
 /**
@@ -60,6 +61,9 @@ class PlayerController(
             volume = settings.volume,
         )
         audioPlayer.setVolume(settings.volume)
+        audioPlayer.onLevel = { levels ->
+            state = state.copy(levels = levels)
+        }
     }
 
     private fun currentPlaylist(): Playlist =
@@ -146,7 +150,17 @@ class PlayerController(
     internal fun pathToTrack(path: String): Track {
         val fileName = path.substringAfterLast('/').substringAfterLast('\\')
         val name = fileName.substringBeforeLast('.')
-        return Track(title = name, artist = "Unknown", filePath = path)
+        val meta = readAudioMetadata(path)
+        return Track(
+            title = meta.title.ifBlank { name },
+            artist = meta.artist.ifBlank { "Unknown" },
+            filePath = path,
+            album = meta.album.ifBlank { null },
+            year = meta.year.ifBlank { null },
+            genre = meta.genre.ifBlank { null },
+            coverArtPath = meta.coverArtPath,
+            lyrics = meta.lyrics,
+        )
     }
 
     private fun playAt(index: Int) {
